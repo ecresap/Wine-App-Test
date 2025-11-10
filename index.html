@@ -32,14 +32,23 @@
       justify-content: space-between;
       align-items: center;
       backdrop-filter: blur(4px);
+      /* Add margin below header to provide breathing room on mobile */
+      margin-bottom: 1rem;
     }
-    header img { height: 32px; width: 32px; margin-right: 0.5rem; }
+    header img {
+      height: 32px;
+      width: 32px;
+      margin-right: 0.5rem;
+      object-fit: contain; /* ensure logo scales correctly on mobile */
+    }
     header h1 { margin: 0; font-weight: 600; font-size: 1.5rem; }
     .container {
       padding: 1rem;
       max-width: 500px;
       margin: 0 auto;
       text-align: center;
+      /* Push content slightly down from the header for better spacing on mobile */
+      margin-top: 0.5rem;
     }
     .stats { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
     .stat-box { background: rgba(255,255,255,0.1); padding: 0.8rem 1rem; border-radius: 0.75rem; box-shadow: inset 0 0 4px rgba(0,0,0,0.5); }
@@ -122,7 +131,11 @@
       max-height: 90vh;
       overflow-y: auto;
     }
-    .modal-content h2 { margin-top: 0; }
+    /* Modal headings: remove top margin and add spacing below for readability */
+    .modal-content h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
     .form-group { margin-bottom: 0.8rem; text-align: left; }
     .form-group label { display: block; margin-bottom: 0.3rem; font-size: 0.8rem; }
     .form-group select, .form-group input { width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #4a0816; background: #10070b; color: #f5e6ea; }
@@ -204,14 +217,28 @@
     }
 
     function closeModal() {
-      document.getElementById('modal').style.display='none';
-      document.getElementById('modal').innerHTML='';
+      // Remove any floating buttons when closing a modal
+      removeFloatingButtons();
+      const modalEl = document.getElementById('modal');
+      modalEl.style.display='none';
+      modalEl.innerHTML='';
     }
     function showModal(content) {
       const modal = document.getElementById('modal');
       modal.innerHTML = '';
       modal.appendChild(content);
       modal.style.display='flex';
+    }
+
+    /**
+     * Utility to remove any floating button container that may have been
+     * appended to the body or modal. Ensures we don't accumulate buttons
+     * when switching between views. Called on closeModal and before
+     * rendering new modals with floating actions.
+     */
+    function removeFloatingButtons() {
+      const fb = document.getElementById('floating-buttons');
+      if (fb) fb.remove();
     }
     function showNewTastingForm() {
       const modalContent = document.createElement('div');
@@ -470,13 +497,25 @@
         grapeList.innerHTML = '<p>No tastings yet.</p>';
       }
       modalContent.appendChild(grapeList);
+      // Remove any existing floating buttons before adding new one
+      removeFloatingButtons();
+      showModal(modalContent);
+      // Add floating Close button at the bottom of the viewport
+      const floatContainer = document.createElement('div');
+      floatContainer.id = 'floating-buttons';
+      floatContainer.style.position = 'fixed';
+      floatContainer.style.bottom = '1rem';
+      floatContainer.style.left = '50%';
+      floatContainer.style.transform = 'translateX(-50%)';
+      floatContainer.style.zIndex = '200';
+      // Use flex to center the button
+      floatContainer.style.display = 'flex';
       const closeBtn = document.createElement('button');
       closeBtn.className = 'btn';
-      closeBtn.style.marginTop = '1rem';
       closeBtn.textContent = 'Close';
       closeBtn.onclick = closeModal;
-      modalContent.appendChild(closeBtn);
-      showModal(modalContent);
+      floatContainer.appendChild(closeBtn);
+      document.body.appendChild(floatContainer);
     }
     function showGrapeDetail(grape) {
       const entries = tastings.filter(t => t.grape === grape);
@@ -540,6 +579,10 @@
       function renderRows() {
         const q = searchInput.value.trim().toLowerCase();
         tbody.innerHTML = '';
+        // Determine wrap width based on the search bar width. This ensures
+        // that the detail cells wrap text at roughly the same width as the
+        // search input. Note: offsetWidth includes padding and border.
+        const wrapWidth = searchInput.offsetWidth;
         entries.forEach((t,i) => {
           // Filter by search query: match wine name, vineyard, notes
           const text = `${t.wineName || ''} ${t.vineyard || ''} ${t.notes || ''}`.toLowerCase();
@@ -547,16 +590,18 @@
           const idx = tastings.indexOf(t);
           // Determine wine display with vintage
           const wineDisplay = t.wineName ? `${t.wineName}${t.vintage ? ' ('+(t.vintage || 'NV')+')' : ''}` : '';
-          // Create three rows per entry: winery, wine name, notes+actions
-          // Row 1: index cell spanning 4 rows and Winery name
+          // Create multiple rows per entry: winery, wine name, notes, ratings, purchased
+          // Row 1: index cell spanning 5 rows and Winery name
           const tr1 = document.createElement('tr');
           const tdIndex = document.createElement('td');
-          tdIndex.rowSpan = 4;
+          tdIndex.rowSpan = 5;
           tdIndex.textContent = (i+1).toString();
           tr1.appendChild(tdIndex);
           const tdWinery = document.createElement('td');
           tdWinery.colSpan = 1;
           tdWinery.innerHTML = `<strong>Winery:</strong> ${t.vineyard || '-'}`;
+          // Apply max-width to wrap text at search bar width
+          tdWinery.style.maxWidth = wrapWidth + 'px';
           tr1.appendChild(tdWinery);
           tbody.appendChild(tr1);
           // Remove border on this row to avoid vine border inside group
@@ -565,6 +610,8 @@
           const tr2 = document.createElement('tr');
           const tdWine = document.createElement('td');
           tdWine.innerHTML = `<strong>Wine:</strong> ${wineDisplay || '-'}`;
+          // Apply max-width
+          tdWine.style.maxWidth = wrapWidth + 'px';
           tr2.appendChild(tdWine);
           tbody.appendChild(tr2);
           Array.from(tr2.children).forEach(cell => cell.style.borderBottom = 'none');
@@ -577,27 +624,66 @@
             `<strong>Smell:</strong> ${t.smell && t.smell.length ? t.smell.join(', ') : '-' }<br/>` +
             `<strong>Taste:</strong> ${t.taste && t.taste.length ? t.taste.join(', ') : '-' }<br/>` +
             `<strong>Colour:</strong> ${t.colourTypes && t.colourTypes.length ? t.colourTypes.join(', ') + ' ' + (t.colourIntensity || '') : '-' }`;
+          tdNotes.style.maxWidth = wrapWidth + 'px';
           tr3.appendChild(tdNotes);
           tbody.appendChild(tr3);
           Array.from(tr3.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 4: Ratings, Purchases and actions (no wrapping)
+          // Row 4: Ratings and actions (no wrapping)
           const tr4 = document.createElement('tr');
-          const tdActions = document.createElement('td');
-          tdActions.style.whiteSpace = 'nowrap';
+          const tdRatings = document.createElement('td');
+          tdRatings.style.whiteSpace = 'nowrap';
           // Ratings text
           let ratingsText = '';
           if (t.rankWine) ratingsText += `W:${t.rankWine}`;
           if (t.rankWinery) ratingsText += (ratingsText ? ', ' : '') + `V:${t.rankWinery}`;
           if (t.rankGrape) ratingsText += (ratingsText ? ', ' : '') + `G:${t.rankGrape}`;
           if (ratingsText) {
-            const ratingsSpan = document.createElement('span');
-            ratingsSpan.innerHTML = `<strong>Ratings:</strong> ${ratingsText} | `;
-            tdActions.appendChild(ratingsSpan);
+            tdRatings.innerHTML = `<strong>Ratings:</strong> ${ratingsText}`;
           }
-          // Purchases with minus and plus buttons
-          const purchaseSpan = document.createElement('span');
-          purchaseSpan.textContent = `Purchased: ${t.timesBought || 1}`;
-          tdActions.appendChild(purchaseSpan);
+          // Append Edit and Delete buttons
+          const actionWrap = document.createElement('span');
+          actionWrap.style.marginLeft = ratingsText ? '0.6rem' : '0';
+          // Edit button
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Edit';
+          editBtn.className = 'btn';
+          editBtn.style.background = 'var(--wine-300)';
+          editBtn.style.padding = '0.3rem 0.6rem';
+          editBtn.style.fontSize = '0.8rem';
+          editBtn.style.marginRight = '0.4rem';
+          editBtn.onclick = () => {
+            showEditTastingForm(idx);
+          };
+          actionWrap.appendChild(editBtn);
+          // Delete button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.className = 'btn';
+          delBtn.style.background = 'var(--wine-400)';
+          delBtn.style.padding = '0.3rem 0.6rem';
+          delBtn.style.fontSize = '0.8rem';
+          delBtn.onclick = () => {
+            if (confirm('Delete this tasting?')) {
+              tastings.splice(idx, 1);
+              render();
+              showGrapeDetail(grape);
+            }
+          };
+          actionWrap.appendChild(delBtn);
+          tdRatings.appendChild(actionWrap);
+          tdRatings.style.maxWidth = wrapWidth + 'px';
+          tr4.appendChild(tdRatings);
+          tbody.appendChild(tr4);
+          // Remove border on row4 to avoid vine separators inside group
+          Array.from(tr4.children).forEach(cell => cell.style.borderBottom = 'none');
+          // Row 5: Purchased (no wrapping)
+          const tr5 = document.createElement('tr');
+          const tdPurch = document.createElement('td');
+          tdPurch.style.whiteSpace = 'nowrap';
+          // Purchased label
+          const purchaseText = document.createElement('span');
+          purchaseText.textContent = `Purchased: ${t.timesBought || 1}`;
+          tdPurch.appendChild(purchaseText);
           // minus button
           const minusBtn = document.createElement('button');
           minusBtn.textContent = '\u2212';
@@ -611,7 +697,8 @@
               showGrapeDetail(grape);
             }
           };
-          tdActions.appendChild(minusBtn);
+          tdPurch.style.maxWidth = wrapWidth + 'px';
+          tdPurch.appendChild(minusBtn);
           // plus button
           const plusBtn = document.createElement('button');
           plusBtn.textContent = '+';
@@ -622,50 +709,31 @@
             render();
             showGrapeDetail(grape);
           };
-          tdActions.appendChild(plusBtn);
-          // Edit button
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.className = 'btn';
-          editBtn.style.background = 'var(--wine-300)';
-          editBtn.style.padding = '0.3rem 0.6rem';
-          editBtn.style.fontSize = '0.8rem';
-          editBtn.style.marginLeft = '0.4rem';
-          editBtn.onclick = () => {
-            showEditTastingForm(idx);
-          };
-          tdActions.appendChild(editBtn);
-          // Delete button
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.className = 'btn';
-          delBtn.style.background = 'var(--wine-400)';
-          delBtn.style.padding = '0.3rem 0.6rem';
-          delBtn.style.fontSize = '0.8rem';
-          delBtn.style.marginLeft = '0.4rem';
-          delBtn.onclick = () => {
-            if (confirm('Delete this tasting?')) {
-              tastings.splice(idx, 1);
-              render();
-              showGrapeDetail(grape);
-            }
-          };
-          tdActions.appendChild(delBtn);
-          tr4.appendChild(tdActions);
-          tbody.appendChild(tr4);
-          // Row4: default border remains for vine separation
+          tdPurch.appendChild(plusBtn);
+          tr5.appendChild(tdPurch);
+          tbody.appendChild(tr5);
         });
       }
       searchInput.oninput = renderRows;
       renderRows();
-      // Back button
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn';
-      closeBtn.style.marginTop = '1rem';
-      closeBtn.textContent = 'Back';
-      closeBtn.onclick = showLibrary;
-      modalContent.appendChild(closeBtn);
+      // Remove existing floating buttons and show modal content
+      removeFloatingButtons();
       showModal(modalContent);
+      // Add floating Back button at bottom of viewport
+      const floatContainer = document.createElement('div');
+      floatContainer.id = 'floating-buttons';
+      floatContainer.style.position = 'fixed';
+      floatContainer.style.bottom = '1rem';
+      floatContainer.style.left = '50%';
+      floatContainer.style.transform = 'translateX(-50%)';
+      floatContainer.style.zIndex = '200';
+      floatContainer.style.display = 'flex';
+      const backBtn = document.createElement('button');
+      backBtn.className = 'btn';
+      backBtn.textContent = 'Back';
+      backBtn.onclick = showLibrary;
+      floatContainer.appendChild(backBtn);
+      document.body.appendChild(floatContainer);
     }
     function showStats() {
       const modalContent = document.createElement('div');
@@ -793,14 +861,24 @@
       }
       wrapper.appendChild(grapesDiv);
       modalContent.appendChild(wrapper);
-      // Close button
+      // Remove existing floating buttons and show modal
+      removeFloatingButtons();
+      showModal(modalContent);
+      // Add floating Close button at bottom of viewport
+      const floatContainer = document.createElement('div');
+      floatContainer.id = 'floating-buttons';
+      floatContainer.style.position = 'fixed';
+      floatContainer.style.bottom = '1rem';
+      floatContainer.style.left = '50%';
+      floatContainer.style.transform = 'translateX(-50%)';
+      floatContainer.style.zIndex = '200';
+      floatContainer.style.display = 'flex';
       const closeBtn = document.createElement('button');
       closeBtn.className = 'btn';
-      closeBtn.style.marginTop = '1rem';
       closeBtn.textContent = 'Close';
       closeBtn.onclick = closeModal;
-      modalContent.appendChild(closeBtn);
-      showModal(modalContent);
+      floatContainer.appendChild(closeBtn);
+      document.body.appendChild(floatContainer);
     }
     // Initial render
     render();
