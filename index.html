@@ -81,6 +81,11 @@
       /* Allow cells to wrap content for mobile screens */
       word-break: break-word;
     }
+    /* Narrow the first column and add a faint divider to separate index from details */
+    table td:first-child, table th:first-child {
+      width: 10%;
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
     /* Use a vine motif on the bottom border of table rows (except last) */
     tbody tr:not(:last-child) td {
       border-bottom: 12px solid transparent;
@@ -500,20 +505,24 @@
       // Remove any existing floating buttons before adding new one
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Close button at the bottom of the viewport
+      // Add floating Close button at the bottom-right of the viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      floatContainer.style.left = '50%';
-      floatContainer.style.transform = 'translateX(-50%)';
+      // Position to bottom right
+      floatContainer.style.right = '1rem';
+      floatContainer.style.left = 'auto';
+      floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
-      // Use flex to center the button
       floatContainer.style.display = 'flex';
       const closeBtn = document.createElement('button');
       closeBtn.className = 'btn';
       closeBtn.textContent = 'Close';
       closeBtn.onclick = closeModal;
+      // Enlarge the floating button by ~25%
+      closeBtn.style.padding = '0.9rem 1.2rem';
+      closeBtn.style.fontSize = '1rem';
       floatContainer.appendChild(closeBtn);
       document.body.appendChild(floatContainer);
     }
@@ -628,56 +637,8 @@
           tr3.appendChild(tdNotes);
           tbody.appendChild(tr3);
           Array.from(tr3.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 4: Ratings and actions (no wrapping)
+          // Row 4: Purchased (no wrapping)
           const tr4 = document.createElement('tr');
-          const tdRatings = document.createElement('td');
-          tdRatings.style.whiteSpace = 'nowrap';
-          // Ratings text
-          let ratingsText = '';
-          if (t.rankWine) ratingsText += `W:${t.rankWine}`;
-          if (t.rankWinery) ratingsText += (ratingsText ? ', ' : '') + `V:${t.rankWinery}`;
-          if (t.rankGrape) ratingsText += (ratingsText ? ', ' : '') + `G:${t.rankGrape}`;
-          if (ratingsText) {
-            tdRatings.innerHTML = `<strong>Ratings:</strong> ${ratingsText}`;
-          }
-          // Append Edit and Delete buttons
-          const actionWrap = document.createElement('span');
-          actionWrap.style.marginLeft = ratingsText ? '0.6rem' : '0';
-          // Edit button
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.className = 'btn';
-          editBtn.style.background = 'var(--wine-300)';
-          editBtn.style.padding = '0.3rem 0.6rem';
-          editBtn.style.fontSize = '0.8rem';
-          editBtn.style.marginRight = '0.4rem';
-          editBtn.onclick = () => {
-            showEditTastingForm(idx);
-          };
-          actionWrap.appendChild(editBtn);
-          // Delete button
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.className = 'btn';
-          delBtn.style.background = 'var(--wine-400)';
-          delBtn.style.padding = '0.3rem 0.6rem';
-          delBtn.style.fontSize = '0.8rem';
-          delBtn.onclick = () => {
-            if (confirm('Delete this tasting?')) {
-              tastings.splice(idx, 1);
-              render();
-              showGrapeDetail(grape);
-            }
-          };
-          actionWrap.appendChild(delBtn);
-          tdRatings.appendChild(actionWrap);
-          tdRatings.style.maxWidth = wrapWidth + 'px';
-          tr4.appendChild(tdRatings);
-          tbody.appendChild(tr4);
-          // Remove border on row4 to avoid vine separators inside group
-          Array.from(tr4.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 5: Purchased (no wrapping)
-          const tr5 = document.createElement('tr');
           const tdPurch = document.createElement('td');
           tdPurch.style.whiteSpace = 'nowrap';
           // Purchased label
@@ -710,28 +671,91 @@
             showGrapeDetail(grape);
           };
           tdPurch.appendChild(plusBtn);
-          tr5.appendChild(tdPurch);
+          tr4.appendChild(tdPurch);
+          tbody.appendChild(tr4);
+          // Remove border on row4 to avoid vine separators inside group
+          Array.from(tr4.children).forEach(cell => cell.style.borderBottom = 'none');
+          // Row 5: Ratings and actions (no wrapping) – placed after Purchased
+          const tr5 = document.createElement('tr');
+          const tdRatings = document.createElement('td');
+          tdRatings.style.whiteSpace = 'nowrap';
+          // Ratings text
+          let ratingsText = '';
+          if (t.rankWine) ratingsText += `W:${t.rankWine}`;
+          if (t.rankWinery) ratingsText += (ratingsText ? ', ' : '') + `V:${t.rankWinery}`;
+          if (t.rankGrape) ratingsText += (ratingsText ? ', ' : '') + `G:${t.rankGrape}`;
+          if (ratingsText) {
+            tdRatings.innerHTML = `<strong>Ratings:</strong> ${ratingsText}`;
+          }
+          // Append Edit and Delete buttons below ratings
+          const actionWrap = document.createElement('span');
+          actionWrap.style.marginLeft = ratingsText ? '0.6rem' : '0';
+          // Edit button
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Edit';
+          editBtn.className = 'btn';
+          editBtn.style.background = 'var(--wine-300)';
+          editBtn.style.padding = '0.3rem 0.6rem';
+          editBtn.style.fontSize = '0.8rem';
+          editBtn.style.marginRight = '0.4rem';
+          editBtn.onclick = () => {
+            showEditTastingForm(idx);
+          };
+          actionWrap.appendChild(editBtn);
+          // Delete button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.className = 'btn';
+          delBtn.style.background = 'var(--wine-400)';
+          delBtn.style.padding = '0.3rem 0.6rem';
+          delBtn.style.fontSize = '0.8rem';
+          delBtn.onclick = () => {
+            if (confirm('Delete this tasting?')) {
+              tastings.splice(idx, 1);
+              render();
+              showGrapeDetail(grape);
+            }
+          };
+          actionWrap.appendChild(delBtn);
+          tdRatings.appendChild(actionWrap);
+          tdRatings.style.maxWidth = wrapWidth + 'px';
+          tr5.appendChild(tdRatings);
           tbody.appendChild(tr5);
         });
+
+        // Add a couple of extra blank rows to allow scrolling further down on mobile
+        for (let padIdx = 0; padIdx < 2; padIdx++) {
+          const padRow = document.createElement('tr');
+          const padCell = document.createElement('td');
+          padCell.colSpan = 2;
+          padCell.innerHTML = '&nbsp;';
+          padCell.style.height = '1.5rem';
+          padRow.appendChild(padCell);
+          tbody.appendChild(padRow);
+        }
       }
       searchInput.oninput = renderRows;
       renderRows();
       // Remove existing floating buttons and show modal content
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Back button at bottom of viewport
+      // Add floating Back button at bottom-right of viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      floatContainer.style.left = '50%';
-      floatContainer.style.transform = 'translateX(-50%)';
+      floatContainer.style.right = '1rem';
+      floatContainer.style.left = 'auto';
+      floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
       floatContainer.style.display = 'flex';
       const backBtn = document.createElement('button');
       backBtn.className = 'btn';
       backBtn.textContent = 'Back';
       backBtn.onclick = showLibrary;
+      // Enlarge the floating button by ~25%
+      backBtn.style.padding = '0.9rem 1.2rem';
+      backBtn.style.fontSize = '1rem';
       floatContainer.appendChild(backBtn);
       document.body.appendChild(floatContainer);
     }
@@ -860,23 +884,31 @@
         grapesDiv.appendChild(table);
       }
       wrapper.appendChild(grapesDiv);
+      // Add some vertical space at the end to allow the page to scroll a bit higher on mobile
+      const statsSpacer = document.createElement('div');
+      statsSpacer.style.height = '3rem';
+      wrapper.appendChild(statsSpacer);
       modalContent.appendChild(wrapper);
       // Remove existing floating buttons and show modal
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Close button at bottom of viewport
+      // Add floating Close button at bottom-right of viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      floatContainer.style.left = '50%';
-      floatContainer.style.transform = 'translateX(-50%)';
+      floatContainer.style.right = '1rem';
+      floatContainer.style.left = 'auto';
+      floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
       floatContainer.style.display = 'flex';
       const closeBtn = document.createElement('button');
       closeBtn.className = 'btn';
       closeBtn.textContent = 'Close';
       closeBtn.onclick = closeModal;
+      // Enlarge the floating button by ~25%
+      closeBtn.style.padding = '0.9rem 1.2rem';
+      closeBtn.style.fontSize = '1rem';
       floatContainer.appendChild(closeBtn);
       document.body.appendChild(floatContainer);
     }
