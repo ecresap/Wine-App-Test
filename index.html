@@ -83,7 +83,8 @@
     }
     /* Narrow the first column and add a faint divider to separate index from details */
     table td:first-child, table th:first-child {
-      width: 10%;
+      /* Limit the index column to fit up to 4 digits, freeing space for details */
+      width: 4ch;
       border-right: 1px solid rgba(255, 255, 255, 0.2);
     }
     /* Use a vine motif on the bottom border of table rows (except last) */
@@ -169,6 +170,10 @@
     const grapes = [
       "Aglianico","Airén","Albariño/Alvarinho","Alicante Bouschet","Aligoté","Arneis","Assyrtiko","Auxerrois","Baga","Barbera","Blaufränkisch/Lemberger","Bonarda","Bordeaux Blend (Red)","Bordeaux Blend (White)","Bobal","Cabernet Franc","Cabernet Sauvignon","Carignan","Carmenère","Cinsault","Clairette","Chardonnay","Chenin Blanc","Cinsaut","Colombard","Cortese","Corvina","Counoise","Dolcetto","Fiano","Friulano","Furmint","Gamay","Garganega","Gewürztraminer","Godello","Glera (Prosecco)","Graciano","Grenache/Garnacha","Grüner Veltliner","Lambrusco","Lagrein","Malbec","Malvasia Bianca","Marsanne","Melon de Bourgogne","Mencía","Merlot","Montepulciano","Mourvèdre/Monastrell","Mtsvane","Müller-Thurgau","Muscat/Moscato","Muscat of Alexandria","Nebbiolo","Negroamaro","Nerello Mascalese","Nero d'Avola","Palomino","Parellada","Pecorino","Pedro Ximénez","Petit Manseng","Petit Verdot","Picpoul/Piquepoul","Pinot Blanc","Pinot Grigio/Pinot Gris","Pinot Meunier","Pinot Noir","Pinotage","Primitivo/Zinfandel","Refosco","Riesling","Rkatsiteli","Roussanne","Sagrantino","Sangiovese","Saperavi","Sauvignon Blanc","Sauvignon Gris","Sémillon","Scheurebe","Sercial","Syrah/Shiraz","Tannat","Tempranillo","Teroldego","Torrontés","Touriga Franca","Touriga Nacional","Trebbiano (Ugni Blanc)","Trousseau/Bastardo","Verdejo","Verdelho","Verdicchio","Vermentino","Viognier","Xarel·lo","Zinfandel/Primitivo","Zibibbo","Zweigelt"];
     let tastings = [];
+    // Store the last observed width of the search bar from the library page.  This
+    // value will be used to set a sensible wrap width for the first column
+    // on the Detailed Stats page so names wrap consistently with the search bar length.
+    let lastSearchWidth = null;
 
     // Smell, taste and colour vocabularies inspired by WSET.  Additional specific fruits have
     // been added to better capture common descriptors: red cherry, black cherry, pineapple,
@@ -297,6 +302,8 @@
           <button class="btn" id="cancel">Cancel</button>
           <button class="btn" id="save">Save</button>
         </div>
+        <!-- Padding spacer for scroll: add extra blank space at bottom of the form -->
+        <div style="height: 3rem;"></div>
       `;
       modalContent.querySelector('#cancel').onclick = closeModal;
       // make multi-selects easier on touch devices: clicking toggles selection
@@ -423,6 +430,8 @@
           <button class="btn" id="edit-cancel">Cancel</button>
           <button class="btn" id="edit-save">Save</button>
         </div>
+        <!-- Padding spacer for scroll: add extra blank space at bottom of the form -->
+        <div style="height: 3rem;"></div>
       `;
       // After building, set up event handlers
       modalContent.querySelector('#edit-cancel').onclick = closeModal;
@@ -505,14 +514,14 @@
       // Remove any existing floating buttons before adding new one
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Close button at the bottom-right of the viewport
+      // Add floating Close button at the bottom-left of the viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      // Position to bottom right
-      floatContainer.style.right = '1rem';
-      floatContainer.style.left = 'auto';
+      // Position to bottom left
+      floatContainer.style.left = '1rem';
+      floatContainer.style.right = 'auto';
       floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
       floatContainer.style.display = 'flex';
@@ -592,6 +601,8 @@
         // that the detail cells wrap text at roughly the same width as the
         // search input. Note: offsetWidth includes padding and border.
         const wrapWidth = searchInput.offsetWidth;
+        // Save for stats page so names wrap similarly there
+        lastSearchWidth = wrapWidth;
         entries.forEach((t,i) => {
           // Filter by search query: match wine name, vineyard, notes
           const text = `${t.wineName || ''} ${t.vineyard || ''} ${t.notes || ''}`.toLowerCase();
@@ -739,13 +750,13 @@
       // Remove existing floating buttons and show modal content
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Back button at bottom-right of viewport
+      // Add floating Back button at bottom-left of viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      floatContainer.style.right = '1rem';
-      floatContainer.style.left = 'auto';
+      floatContainer.style.left = '1rem';
+      floatContainer.style.right = 'auto';
       floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
       floatContainer.style.display = 'flex';
@@ -762,7 +773,15 @@
     function showStats() {
       const modalContent = document.createElement('div');
       modalContent.className = 'modal-content';
-      modalContent.innerHTML = `<h2>Detailed Stats</h2>`;
+      // Insert a small spacer above the header to push content down on mobile
+      const topSpacer = document.createElement('div');
+      // Provide extra vertical space above the stats header to move it down on
+      // mobile screens. Increase height from 1rem to 1.5rem for improved spacing.
+      topSpacer.style.height = '1.5rem';
+      modalContent.appendChild(topSpacer);
+      const headerEl = document.createElement('h2');
+      headerEl.textContent = 'Detailed Stats';
+      modalContent.appendChild(headerEl);
       // Compute counts per grape
       const grapeCounts = tastings.reduce((acc,t) => {
         acc[t.grape] = (acc[t.grape] || 0) + 1;
@@ -792,7 +811,11 @@
         return averages.sort((a,b) => b.avg - a.avg).slice(0, 10);
       }
       // Helper to build a table with vine-style separators
+      // Build a table for stats with a dynamic max width for the first column.  The
+      // first column (name) will wrap at the same width as the library search bar if
+      // known (lastSearchWidth).  Otherwise a default of 240px is used.
       function buildTable(headers, rows) {
+        const wrapWidth = lastSearchWidth || 240;
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
@@ -800,10 +823,28 @@
         const tbody = document.createElement('tbody');
         rows.forEach(row => {
           const tr = document.createElement('tr');
-          tr.innerHTML = row.map(cell => `<td>${cell}</td>`).join('');
+          row.forEach((cell, idx) => {
+            const td = document.createElement('td');
+            td.innerHTML = cell;
+            // Apply max width to the first column to control wrapping and
+            // override the global width rule. Also allow width to auto expand.
+            if (idx === 0) {
+              td.style.maxWidth = wrapWidth + 'px';
+              td.style.width = 'auto';
+              td.style.wordBreak = 'break-word';
+            }
+            tr.appendChild(td);
+          });
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);
+        // Override first header cell width for readability
+        const firstTh = thead.querySelector('th:first-child');
+        if (firstTh) {
+          firstTh.style.width = 'auto';
+          firstTh.style.maxWidth = wrapWidth + 'px';
+          firstTh.style.wordBreak = 'break-word';
+        }
         return table;
       }
       const wrapper = document.createElement('div');
@@ -892,13 +933,13 @@
       // Remove existing floating buttons and show modal
       removeFloatingButtons();
       showModal(modalContent);
-      // Add floating Close button at bottom-right of viewport
+      // Add floating Close button at bottom-left of viewport
       const floatContainer = document.createElement('div');
       floatContainer.id = 'floating-buttons';
       floatContainer.style.position = 'fixed';
       floatContainer.style.bottom = '1rem';
-      floatContainer.style.right = '1rem';
-      floatContainer.style.left = 'auto';
+      floatContainer.style.left = '1rem';
+      floatContainer.style.right = 'auto';
       floatContainer.style.transform = 'none';
       floatContainer.style.zIndex = '200';
       floatContainer.style.display = 'flex';
