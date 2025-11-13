@@ -659,6 +659,7 @@
     <div id="overlayContent" class="panel"></div>
   </div>
 
+  <script src="localStorage.js"></script>
   <script>
     // Data arrays for grapes, smell, and taste notes (alphabetical)
     const grapes = [
@@ -869,8 +870,10 @@
     createChips('tasteChips', tasteOptions);
 
     // Example counters; replace these with actual data if storing tastings
-    let tastings = [];
+    let tastings = getTastings();
     function updateStats() {
+      // Refresh tastings from localStorage each time stats are updated
+      tastings = getTastings();
       const tastingCount = tastings.length;
       const grapeCount = new Set(tastings.map(t => t.grape)).size;
       animateNumber('tastingCount', tastingCount);
@@ -933,7 +936,9 @@
         createdAt: new Date().toISOString(),
         timesBought: 1
       };
-      tastings.push(t);
+      // Persist the new tasting to localStorage and refresh tastings
+      addTasting(t);
+      tastings = getTastings();
       // Reset form and hide
       cancelBtn.click();
       // Update stats
@@ -977,6 +982,8 @@
 
     // Show the Tasting Library
     function showLibrary() {
+      // Refresh tastings from localStorage
+      tastings = getTastings();
       // Create search and list of grapes
       const grapeCounts = {};
       tastings.forEach((t, idx) => {
@@ -1024,6 +1031,8 @@
     }
 
     function showGrapeDetail(grape) {
+      // Refresh tastings from localStorage
+      tastings = getTastings();
       // Filter tastings by grape
       const tasts = tastings.map((t, idx) => ({ ...t, index: idx }))
         .filter(t => t.grape === grape);
@@ -1153,14 +1162,20 @@
           const idx = parseInt(btn.getAttribute('data-index'));
           if (action === 'inc') {
             tastings[idx].timesBought = (tastings[idx].timesBought || 1) + 1;
+            // Persist change
+            saveTastings(tastings);
             updateStats();
             showGrapeDetail(grape);
           } else if (action === 'dec') {
             tastings[idx].timesBought = Math.max(0, (tastings[idx].timesBought || 1) - 1);
+            // Persist change
+            saveTastings(tastings);
             updateStats();
             showGrapeDetail(grape);
           } else if (action === 'del') {
             tastings.splice(idx, 1);
+            // Persist change
+            saveTastings(tastings);
             updateStats();
             showLibrary();
           } else if (action === 'edit') {
@@ -1218,6 +1233,8 @@
         t.intensity = document.getElementById('colourIntensity').value;
         t.notes = document.getElementById('notes').value.trim();
         t.updatedAt = new Date().toISOString();
+        // Save updated tastings list to localStorage
+        saveTastings(tastings);
         // Reset form and restore button
         cancelBtn.click();
         saveBtn.textContent = originalText;
@@ -1232,6 +1249,8 @@
 
     // Show stats page
     function showStats() {
+      // Refresh tastings from localStorage
+      tastings = getTastings();
       if (tastings.length === 0) {
         showOverlay(`<div class="panel-header"><div class="panel-title">Detailed Stats</div><div class="panel-close" id="statsClose">✕</div></div><p class="empty">No tastings yet.</p>`);
         document.getElementById('statsClose').addEventListener('click', closeOverlay);
@@ -1271,8 +1290,14 @@
       html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Wineries</div>${topWineries.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
       // Top rated grapes
       html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Grapes</div>${topGrapes.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
+      // Export data button
+      html += `<div style="text-align:center;margin-top:1rem;"><button class="btn btn-secondary" id="exportDataBtn">Export Tastings (JSON)</button></div>`;
       showOverlay(html);
       document.getElementById('statsClose').addEventListener('click', closeOverlay);
+      // Add export button handler
+      document.getElementById('exportDataBtn').addEventListener('click', () => {
+        exportTastings();
+      });
     }
   </script>
 </body>
