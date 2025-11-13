@@ -382,7 +382,7 @@
     .entry-value {
       font-size: 0.9rem;
       flex: 1;
-      text-align: right;
+      text-align: left;
     }
     .entry-actions {
       justify-content: flex-end;
@@ -414,6 +414,50 @@
     .small-btn:active {
       transform: translateY(0);
       box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    /* Stats cards for detailed stats page */
+    .stats-category-card {
+      width: 100%;
+      background: linear-gradient(160deg, var(--wine-800), var(--wine-600));
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+      margin-bottom: 1rem;
+    }
+    .stats-card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .stats-category-card .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+    .stats-category-card .stat-row:not(:last-child) {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .stats-category-card .stat-row:nth-child(odd) {
+      background: rgba(255,255,255,0.04);
+    }
+    .stats-category-card .stat-name {
+      flex: 1;
+      text-align: left;
+    }
+    .stats-category-card .stat-value {
+      flex-shrink: 0;
+      text-align: right;
+      margin-left: 1rem;
+    }
+
+    /* Descriptor groups for smell/taste */
+    .descriptor-group {
+      display: inline-block;
+      margin-right: 0.4rem;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -620,7 +664,13 @@
     const grapes = [
       'Aglianico','Albariño','Barbera','Blaufränkisch','Cabernet Franc','Cabernet Sauvignon','Carmenère','Chardonnay','Chenin Blanc','Dolcetto','Fiano','Gamay','Gewürztraminer','Grüner Veltliner','Malbec','Marsanne','Merlot','Mourvèdre','Nebbiolo','Nero d\'Avola','Palomino','Petit Verdot','Pinot Blanc','Pinot Grigio','Pinot Meunier','Pinot Noir','Riesling','Sangiovese','Sauvignon Blanc','Sémillon','Syrah/Shiraz','Tempranillo','Touriga Nacional','Viognier','Zinfandel'];
     const smellOptions = [
-      'Rose','Violet','Acacia','Elderflower','Citrus: Lemon','Citrus: Lime','Citrus: Grapefruit','Orange','Stone Fruit: Peach','Stone Fruit: Apricot','Stone Fruit: Nectarine','Tropical: Pineapple','Tropical: Mango','Tropical: Banana','Tropical: Passion Fruit','Red Fruit: Strawberry','Red Fruit: Raspberry','Red Fruit: Red Cherry','Red Fruit: Cranberry','Black Fruit: Blackberry','Black Fruit: Blackcurrant','Black Fruit: Black Cherry','Black Fruit: Plum','Herbal: Grass','Herbal: Mint','Spice: Black Pepper','Spice: Clove','Dried Fruit','Leather','Mushroom','Honey','Nutty'];
+      'Rose','Violet','Acacia','Elderflower','Citrus: Lemon','Citrus: Lime','Citrus: Grapefruit','Orange',
+      'Stone Fruit: Peach','Stone Fruit: Apricot','Stone Fruit: Nectarine',
+      'Tropical: Pineapple','Tropical: Mango','Tropical: Banana','Tropical: Passion Fruit',
+      'Red Fruit: Strawberry','Red Fruit: Raspberry','Red Fruit: Red Cherry','Red Fruit: Cranberry',
+      'Black Fruit: Blackberry','Black Fruit: Blackcurrant','Black Fruit: Black Cherry','Black Fruit: Plum',
+      'Red Plum','Black Plum',
+      'Herbal: Grass','Herbal: Mint','Spice: Black Pepper','Spice: Clove','Dried Fruit','Leather','Mushroom','Honey','Nutty'];
     const tasteOptions = [...smellOptions];
     // Populate grape and rating selects
     const grapeSelect = document.getElementById('grape');
@@ -846,6 +896,39 @@
             <p><strong>Colour:</strong> ${commonColour.join(', ') || '—'}</p>
           </div>`;
       }
+      // Helper to format smell/taste descriptors
+      function formatDescriptors(list) {
+        if (!list || list.length === 0) return '—';
+        const groups = {};
+        list.forEach(item => {
+          let label = '';
+          let descriptor = item;
+          if (item.includes(':')) {
+            const parts = item.split(':');
+            label = parts[0].trim();
+            descriptor = parts.slice(1).join(':').trim();
+          }
+          if (!groups[label]) groups[label] = [];
+          groups[label].push(descriptor);
+        });
+        return Object.entries(groups).map(([lbl, descriptors]) => {
+          let printLabel = lbl;
+          const lower = lbl.toLowerCase();
+          // Remove redundant labels if descriptors already include the color word
+          if (lower.includes('black') && descriptors.some(d => d.toLowerCase().includes('black'))) {
+            printLabel = '';
+          }
+          if (lower.includes('red') && descriptors.some(d => d.toLowerCase().includes('red'))) {
+            printLabel = '';
+          }
+          const joined = descriptors.join(', ');
+          if (printLabel) {
+            return `<span class="descriptor-group">${printLabel}: ${joined}</span>`;
+          } else {
+            return `<span class="descriptor-group">${joined}</span>`;
+          }
+        }).join(', ');
+      }
       // Build tasting entries
       let entriesHtml = '';
       tasts.forEach(t => {
@@ -862,15 +945,15 @@
             </div>
             <div class="entry-row">
               <div class="entry-label">Profile:</div>
-              <div class="entry-value">${t.sweetness || ''} ${t.acidity || ''}</div>
+              <div class="entry-value">${(t.sweetness || '') + (t.sweetness && t.acidity ? ', ' : '') + (t.acidity || '')}</div>
             </div>
             <div class="entry-row">
               <div class="entry-label">Smell:</div>
-              <div class="entry-value">${t.smell.join(', ') || '—'}</div>
+              <div class="entry-value">${formatDescriptors(t.smell)}</div>
             </div>
             <div class="entry-row">
               <div class="entry-label">Taste:</div>
-              <div class="entry-value">${t.taste.join(', ') || '—'}</div>
+              <div class="entry-value">${formatDescriptors(t.taste)}</div>
             </div>
             <div class="entry-row">
               <div class="entry-label">Colour:</div>
@@ -1024,29 +1107,16 @@
       const topWines = topWeighted('wineName', 'wineRating');
       const topWineries = topWeighted('vineyard', 'wineryRating');
       const topGrapes = topWeighted('grape', 'grapeRating');
-      // Build HTML for stats
-      let html = `
-        <div class="panel-header">
-          <div class="panel-title">Detailed Stats</div>
-          <div class="panel-close" id="statsClose">✕</div>
-        </div>
-        <div class="section">
-          <div class="section-title">Counts by Grape</div>
-          ${countList.map(([g,c]) => `<div class="stat-row"><span>${g}</span><span>${c}</span></div>`).join('')}
-        </div>
-        <div class="section">
-          <div class="section-title">Top Rated Wines</div>
-          ${topWines.map(item => `<div class="stat-row"><span>${item.name}</span><span>${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}
-        </div>
-        <div class="section">
-          <div class="section-title">Top Rated Wineries</div>
-          ${topWineries.map(item => `<div class="stat-row"><span>${item.name}</span><span>${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}
-        </div>
-        <div class="section">
-          <div class="section-title">Top Rated Grapes</div>
-          ${topGrapes.map(item => `<div class="stat-row"><span>${item.name}</span><span>${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}
-        </div>
-      `;
+      // Build HTML for stats with card-based layout
+      let html = `<div class="panel-header"><div class="panel-title">Detailed Stats</div><div class="panel-close" id="statsClose">✕</div></div>`;
+      // Counts by grape card
+      html += `<div class="stats-category-card"><div class="stats-card-title">Counts by Grape</div>${countList.map(([g,c]) => `<div class="stat-row"><span class="stat-name">${g}</span><span class="stat-value">${c}</span></div>`).join('')}</div>`;
+      // Top rated wines
+      html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Wines</div>${topWines.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
+      // Top rated wineries
+      html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Wineries</div>${topWineries.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
+      // Top rated grapes
+      html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Grapes</div>${topGrapes.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
       showOverlay(html);
       document.getElementById('statsClose').addEventListener('click', closeOverlay);
     }
