@@ -3,971 +3,596 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wine Buddy Preview</title>
+  <title>Wine Buddy</title>
+  <!-- Google fonts for premium typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
     :root {
-      --wine-900: #3a0611;
-      --wine-800: #4a0816;
-      --wine-700: #5d0a1a;
-      --wine-600: #721323;
-      --wine-500: #8b1028;
-      --wine-400: #a92b3f;
-      --wine-300: #c23a52;
-      --wine-200: #e3a2b0;
+      /* Rich wine colour palette */
+      --wine-900: #2c0510;
+      --wine-800: #450a18;
+      --wine-700: #61101f;
+      --wine-600: #7a1425;
+      --wine-500: #8f182b;
+      --wine-400: #a9193a;
+      --wine-300: #c33d55;
+      --wine-200: #da7a8a;
       --wine-100: #f5e6ea;
+    }
+    * {
+      box-sizing: border-box;
     }
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
-      color: #f5e6ea;
-      background-image: linear-gradient(135deg, var(--wine-900), var(--wine-700), var(--wine-600));
-      background-attachment: fixed;
+      background: radial-gradient(circle at 50% 20%, var(--wine-700), var(--wine-900));
+      color: var(--wine-100);
       min-height: 100vh;
-      /* Remove decorative border to create a cleaner, more spacious look */
     }
+    /* Global container for consistent horizontal padding */
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+    }
+    /* Header / Top bar */
     header {
-      padding: 1rem;
+      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      backdrop-filter: blur(4px);
-      /* Add margin below header to provide breathing room on mobile */
-      margin-bottom: 1rem;
+      padding: 0.75rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.3);
     }
-    header img {
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .header-left img {
       height: 32px;
       width: 32px;
-      margin-right: 0.5rem;
-      object-fit: contain; /* ensure logo scales correctly on mobile */
+      object-fit: contain;
     }
-    header h1 { margin: 0; font-weight: 600; font-size: 1.5rem; }
-    .container {
-      padding: 1rem;
-      max-width: 500px;
-      margin: 0 auto;
-      text-align: center;
-      /* Push content slightly down from the header for better spacing on mobile */
-      margin-top: 0.5rem;
+    .header-left .app-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
     }
-    .stats { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
-    .stat-box { background: rgba(255,255,255,0.1); padding: 0.8rem 1rem; border-radius: 0.75rem; box-shadow: inset 0 0 4px rgba(0,0,0,0.5); }
-    .stat-box .number { font-size: 1.8rem; font-weight: 600; }
-    .stat-box .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
-    .buttons { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .btn {
-      background: var(--wine-500);
-      color: white;
-      border: none;
-      border-radius: 999px;
-      padding: 0.75rem 1rem;
-      font-weight: 600;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.4); }
-    .btn:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-
-    /* Table styling for library and stats pages */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 0.4rem 0.5rem;
-      text-align: left;
-      vertical-align: top;
-      /* Allow cells to wrap content for mobile screens */
-      word-break: break-word;
-    }
-    /* Narrow the first column and add a faint divider to separate index from details */
-    table td:first-child, table th:first-child {
-      /* Limit the index column to fit up to 4 digits, freeing space for details */
-      width: 4ch;
-      border-right: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    /* Use a vine motif on the bottom border of table rows (except last) */
-    tbody tr:not(:last-child) td {
-      border-bottom: 12px solid transparent;
-      border-image-source: url('vine_border_white.png');
-      border-image-slice: 30;
-      border-image-repeat: repeat;
-      border-image-width: 12;
-    }
-
-    /* Small button used for incrementing purchases */
-    .small-btn {
-      background: var(--wine-400);
-      color: white;
-      border: none;
-      padding: 0.2rem 0.5rem;
-      border-radius: 0.4rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .small-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 3px 4px rgba(0,0,0,0.4);
-    }
-    .small-btn:active {
-      transform: translateY(0);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    }
-    /* Modal */
-    .modal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
+    .header-right {
       display: flex;
-      justify-content: center;
       align-items: center;
-      z-index: 100;
+      gap: 0.5rem;
     }
-    .modal-content {
-      /* Use a wine‑toned background to match the landing page. Slightly translucent so the
-         underlying gradient shows through, keeping the modal integrated with the page. */
-      background: rgba(58, 6, 17, 0.95);
-      border-radius: 0.75rem;
-      padding: 1rem;
-      width: 90%;
-      max-width: 480px;
-      color: #f5e6ea;
-      max-height: 90vh;
-      overflow-y: auto;
+    .header-icon {
+      font-size: 1.5rem;
+      opacity: 0.7;
     }
-    /* Modal headings: remove top margin and add spacing below for readability */
-    .modal-content h2 {
-      margin-top: 0;
+    /* Hero section */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 2rem 0 1.5rem;
+    }
+    .hero-logo {
+      width: 80px;
+      height: 80px;
       margin-bottom: 0.5rem;
     }
-    .form-group { margin-bottom: 0.8rem; text-align: left; }
-    .form-group label { display: block; margin-bottom: 0.3rem; font-size: 0.8rem; }
-    .form-group select, .form-group input { width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #4a0816; background: #10070b; color: #f5e6ea; }
-    .form-group textarea { width: 100%; min-height: 60px; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #4a0816; background: #10070b; color: #f5e6ea; }
-    .list { margin-top: 1rem; text-align: left; }
-    .list-item { margin-bottom: 0.3rem; }
-    .link { color: #e3a2b0; text-decoration: underline; cursor: pointer; }
-    .chart-bar { height: 16px; margin: 2px 0; background: var(--wine-400); border-radius: 4px; }
+    .hero-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+    .hero-subheadline {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--wine-200);
+      max-width: 480px;
+      line-height: 1.4;
+    }
+    /* Stats cards */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .stat-card {
+      flex: 1;
+      background: linear-gradient(160deg, var(--wine-800), var(--wine-600));
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-icon {
+      font-size: 1.4rem;
+      margin-bottom: 0.25rem;
+    }
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 700;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--wine-200);
+      letter-spacing: 0.05em;
+    }
+    /* Action cards */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .action-card {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      background: linear-gradient(160deg, var(--wine-700), var(--wine-500));
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .action-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    }
+    .action-icon {
+      font-size: 1.6rem;
+    }
+    .action-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .action-desc {
+      font-size: 0.8rem;
+      color: var(--wine-200);
+    }
+    /* Form panel styling */
+    .form-panel {
+      background: linear-gradient(160deg, var(--wine-800), var(--wine-600));
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+      margin-top: 1rem;
+    }
+    .form-panel .section {
+      margin-bottom: 1.5rem;
+    }
+    .form-panel .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      padding-bottom: 0.3rem;
+    }
+    .form-panel .field {
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+    .form-panel label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+      color: var(--wine-200);
+    }
+    .form-panel input,
+    .form-panel select,
+    .form-panel textarea {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 0.6rem;
+      border: none;
+      background: #150910;
+      color: var(--wine-100);
+      box-shadow: inset 0 0 0 1px #4a0915;
+      font-size: 0.95rem;
+    }
+    .form-panel input::placeholder,
+    .form-panel textarea::placeholder {
+      color: #987;
+    }
+    /* Chips for smell/taste */
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chip {
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .chip.selected {
+      background: var(--wine-500);
+    }
+    /* Form buttons */
+    .form-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .btn {
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--wine-500);
+      color: white;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: var(--wine-200);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+    /* Toast message */
+    .toast {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--wine-500);
+      color: white;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 100;
+    }
   </style>
 </head>
 <body>
+  <!-- Top bar / Header -->
   <header>
-    <div style="display:flex;align-items:center;">
-      <img src="logo.png" alt="Logo" />
-      <h1>Wine Buddy</h1>
+    <div class="header-left">
+      <img src="logo.png" alt="Wine Buddy logo">
+      <span class="app-name">Wine Buddy</span>
+    </div>
+    <div class="header-right">
+      <!-- Placeholder for future profile/settings -->
+      <span class="header-icon">☰</span>
     </div>
   </header>
-  <div class="container" id="app">
-    <p id="intro">Loading…</p>
-  </div>
-  <div id="modal" style="display:none" class="modal"></div>
+
+  <main class="container" id="main">
+    <!-- Hero Section -->
+    <section class="hero">
+      <img src="logo.png" alt="Wine Buddy logo" class="hero-logo">
+      <h2 class="hero-headline">Discover your wine palate.</h2>
+      <p class="hero-subheadline">Record tastings, track your favorite grapes, and explore your unique flavor patterns.</p>
+    </section>
+
+    <!-- Stats Cards -->
+    <section class="stats-row">
+      <div class="stat-card" id="stat-tastings">
+        <div class="stat-icon">🍷</div>
+        <div class="stat-number" id="tastingCount">0</div>
+        <div class="stat-label">Tastings</div>
+      </div>
+      <div class="stat-card" id="stat-grapes">
+        <div class="stat-icon">🍇</div>
+        <div class="stat-number" id="grapeCount">0</div>
+        <div class="stat-label">Grapes</div>
+      </div>
+    </section>
+
+    <!-- Action Cards -->
+    <section class="action-list">
+      <div class="action-card" id="newTastingBtn">
+        <div class="action-icon">➕</div>
+        <div>
+          <div class="action-title">New Tasting</div>
+          <div class="action-desc">Start a new wine entry</div>
+        </div>
+      </div>
+      <div class="action-card" id="libraryBtn">
+        <div class="action-icon">📚</div>
+        <div>
+          <div class="action-title">Tasting Library</div>
+          <div class="action-desc">Browse all your tastings</div>
+        </div>
+      </div>
+      <div class="action-card" id="statsBtn">
+        <div class="action-icon">📊</div>
+        <div>
+          <div class="action-title">Detailed Stats</div>
+          <div class="action-desc">See your palate stats</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- New Tasting Form (hidden by default) -->
+    <section id="newTastingSection" style="display:none;">
+      <div class="form-panel">
+        <h3 style="margin-top:0; margin-bottom:1rem; font-size:1.2rem; font-weight:600;">New Tasting</h3>
+        <!-- Basic Info -->
+        <div class="section">
+          <div class="section-title">Basic Info</div>
+          <div class="field">
+            <label for="vineyard">Vineyard / Winery</label>
+            <input type="text" id="vineyard" placeholder="Enter winery name" />
+          </div>
+          <div class="field">
+            <label for="wineName">Wine Name</label>
+            <input type="text" id="wineName" placeholder="Enter wine name" />
+          </div>
+          <div class="field">
+            <label for="vintage">Vintage Year</label>
+            <input type="number" id="vintage" placeholder="e.g., 2021" />
+          </div>
+          <div class="field">
+            <label for="grape">Grape Variety</label>
+            <select id="grape">
+              <!-- Grape options will be populated by script -->
+            </select>
+          </div>
+        </div>
+        <!-- Ratings -->
+        <div class="section">
+          <div class="section-title">Ratings</div>
+          <div class="field">
+            <label for="wineRating">Wine Rating (1–10)</label>
+            <select id="wineRating">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wineryRating">Winery Rating (1–10)</label>
+            <select id="wineryRating">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="grapeRating">Grape Rating (1–10)</label>
+            <select id="grapeRating">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+        </div>
+        <!-- Profile -->
+        <div class="section">
+          <div class="section-title">Profile</div>
+          <div class="field">
+            <label for="sweetness">Sweetness</label>
+            <select id="sweetness">
+              <option value="">-- Select --</option>
+              <option value="Dry">Dry</option>
+              <option value="Off-Dry">Off-Dry</option>
+              <option value="Medium-Dry">Medium-Dry</option>
+              <option value="Medium-Sweet">Medium-Sweet</option>
+              <option value="Sweet">Sweet</option>
+              <option value="Luscious">Luscious</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acidity">Acidity</label>
+            <select id="acidity">
+              <option value="">-- Select --</option>
+              <option value="Low">Low</option>
+              <option value="Medium(-)">Medium(-)</option>
+              <option value="Medium">Medium</option>
+              <option value="Medium(+)">Medium(+)</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+        <!-- Aromas & Flavors -->
+        <div class="section">
+          <div class="section-title">Smell (select up to 4)</div>
+          <div class="chip-container" id="smellChips"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Taste (select up to 4)</div>
+          <div class="chip-container" id="tasteChips"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Colour</div>
+          <div class="field">
+            <label for="colourType">Colour Type</label>
+            <select id="colourType">
+              <option value="">-- Select --</option>
+              <option value="Ruby">Ruby</option>
+              <option value="Garnet">Garnet</option>
+              <option value="Purple">Purple</option>
+              <option value="Tawny">Tawny</option>
+              <option value="Lemon-Green">Lemon-Green</option>
+              <option value="Lemon">Lemon</option>
+              <option value="Gold">Gold</option>
+              <option value="Amber">Amber</option>
+              <option value="Pink">Pink</option>
+              <option value="Salmon">Salmon</option>
+              <option value="Copper">Copper</option>
+              <option value="Mahogany">Mahogany</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="colourIntensity">Colour Intensity</label>
+            <select id="colourIntensity">
+              <option value="">-- Select --</option>
+              <option value="Light">Light</option>
+              <option value="Medium">Medium</option>
+              <option value="Deep">Deep</option>
+            </select>
+          </div>
+        </div>
+        <!-- Additional notes -->
+        <div class="section">
+          <div class="section-title">Additional Notes</div>
+          <div class="field">
+            <label for="notes">Notes</label>
+            <textarea id="notes" rows="3" placeholder="Write any tasting notes..."></textarea>
+          </div>
+        </div>
+        <!-- Form Buttons -->
+        <div class="form-buttons">
+          <button class="btn btn-primary" id="saveBtn">Save Tasting</button>
+          <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">Tasting saved!</div>
+
   <script>
-    // Simplified seed data
-    // Extended grape variety list (approx. 100 varieties including popular blends)
-    // Sorted alphabetically for easy browsing. Includes common blends like Bordeaux.
+    // Data arrays for grapes, smell, and taste notes (alphabetical)
     const grapes = [
-      "Aglianico","Airén","Albariño/Alvarinho","Alicante Bouschet","Aligoté","Arneis","Assyrtiko","Auxerrois","Baga","Barbera","Blaufränkisch/Lemberger","Bonarda","Bordeaux Blend (Red)","Bordeaux Blend (White)","Bobal","Cabernet Franc","Cabernet Sauvignon","Carignan","Carmenère","Cinsault","Clairette","Chardonnay","Chenin Blanc","Cinsaut","Colombard","Cortese","Corvina","Counoise","Dolcetto","Fiano","Friulano","Furmint","Gamay","Garganega","Gewürztraminer","Godello","Glera (Prosecco)","Graciano","Grenache/Garnacha","Grüner Veltliner","Lambrusco","Lagrein","Malbec","Malvasia Bianca","Marsanne","Melon de Bourgogne","Mencía","Merlot","Montepulciano","Mourvèdre/Monastrell","Mtsvane","Müller-Thurgau","Muscat/Moscato","Muscat of Alexandria","Nebbiolo","Negroamaro","Nerello Mascalese","Nero d'Avola","Palomino","Parellada","Pecorino","Pedro Ximénez","Petit Manseng","Petit Verdot","Picpoul/Piquepoul","Pinot Blanc","Pinot Grigio/Pinot Gris","Pinot Meunier","Pinot Noir","Pinotage","Primitivo/Zinfandel","Refosco","Riesling","Rkatsiteli","Roussanne","Sagrantino","Sangiovese","Saperavi","Sauvignon Blanc","Sauvignon Gris","Sémillon","Scheurebe","Sercial","Syrah/Shiraz","Tannat","Tempranillo","Teroldego","Torrontés","Touriga Franca","Touriga Nacional","Trebbiano (Ugni Blanc)","Trousseau/Bastardo","Verdejo","Verdelho","Verdicchio","Vermentino","Viognier","Xarel·lo","Zinfandel/Primitivo","Zibibbo","Zweigelt"];
-    let tastings = [];
-    // Store the last observed width of the search bar from the library page.  This
-    // value will be used to set a sensible wrap width for the first column
-    // on the Detailed Stats page so names wrap consistently with the search bar length.
-    let lastSearchWidth = null;
-
-    // Smell, taste and colour vocabularies inspired by WSET.  Additional specific fruits have
-    // been added to better capture common descriptors: red cherry, black cherry, pineapple,
-    // strawberry, raspberry, blackberry, plum, blackcurrant and blueberry.
-    let smellOptions = [
-      'Citrus','Stone Fruit','Tropical','Red Fruit','Black Fruit','Floral','Herbal/Green','Spice','Yeast/Autolysis','Oak','Malolactic','Dried Fruit','Nutty','Earthy','Herbaceous',
-      'Red Cherry','Black Cherry','Pineapple','Strawberry','Raspberry','Blackberry','Plum','Blackcurrant','Blueberry'
-    ];
-    let tasteOptions = [
-      'Citrus','Stone Fruit','Tropical','Red Fruit','Black Fruit','Spice','Herbal','Floral','Yeast/Autolysis','Oak','Dried Fruit','Mineral','Earthy','Savory','Nutty',
-      'Red Cherry','Black Cherry','Pineapple','Strawberry','Raspberry','Blackberry','Plum','Blackcurrant','Blueberry'
-    ];
-    let colourOptions = [
-      'Lemon‑Green','Lemon','Gold','Amber','Ruby','Garnet','Purple','Tawny','Pink','Salmon','Orange‑Pink','Copper','Mahogany'
-    ];
-    const colourIntensityOptions = ['Light','Medium','Dark'];
-
-    // Sort the lists alphabetically for user friendliness
-    smellOptions = smellOptions.sort((a,b) => a.localeCompare(b));
-    tasteOptions = tasteOptions.sort((a,b) => a.localeCompare(b));
-    colourOptions = colourOptions.sort((a,b) => a.localeCompare(b));
-
-    function render() {
-      const container = document.getElementById('app');
-      const grapeSet = new Set(tastings.map(t => t.grape));
-      const total = tastings.length;
-      const topGrape = Object.entries(tastings.reduce((acc,t) => (acc[t.grape]=(acc[t.grape]||0)+1, acc),{})).sort((a,b)=>b[1]-a[1])[0]?.[0];
-      container.innerHTML = '';
-      const intro = document.createElement('div');
-      intro.innerHTML = `<p>Record your wine tastings and explore your palate patterns.</p>`;
-      container.appendChild(intro);
-      const stats = document.createElement('div');
-      stats.className = 'stats';
-      stats.innerHTML = `
-        <div class="stat-box"><div class="number">${total}</div><div class="label">Tastings</div></div>
-        <div class="stat-box"><div class="number">${grapeSet.size}</div><div class="label">Grapes</div></div>
-        ${topGrape ? `<div class="stat-box"><div class="number">${topGrape}</div><div class="label">Top grape</div></div>` : ''}
-      `;
-      container.appendChild(stats);
-      const buttons = document.createElement('div');
-      buttons.className = 'buttons';
-      buttons.innerHTML = `
-        <button class="btn" id="btn-new">New Tasting</button>
-        <button class="btn" id="btn-library">Tasting Library</button>
-        <button class="btn" id="btn-stats">Detailed Stats</button>
-      `;
-      container.appendChild(buttons);
-      document.getElementById('btn-new').onclick = showNewTastingForm;
-      document.getElementById('btn-library').onclick = showLibrary;
-      document.getElementById('btn-stats').onclick = showStats;
-    }
-
-    function closeModal() {
-      // Remove any floating buttons when closing a modal
-      removeFloatingButtons();
-      const modalEl = document.getElementById('modal');
-      modalEl.style.display='none';
-      modalEl.innerHTML='';
-    }
-    function showModal(content) {
-      const modal = document.getElementById('modal');
-      modal.innerHTML = '';
-      modal.appendChild(content);
-      modal.style.display='flex';
-    }
-
-    /**
-     * Utility to remove any floating button container that may have been
-     * appended to the body or modal. Ensures we don't accumulate buttons
-     * when switching between views. Called on closeModal and before
-     * rendering new modals with floating actions.
-     */
-    function removeFloatingButtons() {
-      const fb = document.getElementById('floating-buttons');
-      if (fb) fb.remove();
-    }
-    function showNewTastingForm() {
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
-      modalContent.innerHTML = `
-        <h2>New Tasting</h2>
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Vineyard / Winery</label>
-            <select id="new-rankWinery" style="flex:0 0 40%;">
-              <option value="" disabled selected>Winery Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <input id="new-vineyard" type="text" placeholder="e.g., Domaine de la Romanée‑Conti" />
-        </div>
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Wine Name</label>
-            <select id="new-rankWine" style="flex:0 0 40%;">
-              <option value="" disabled selected>Wine Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <input id="new-wineName" type="text" placeholder="e.g., Montrachet Grand Cru" />
-        </div>
-        <div class="form-group"><label>Vintage Year</label><input id="new-vintage" type="number" min="1900" max="${new Date().getFullYear()}" placeholder="e.g., 2018" /></div>
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Grape</label>
-            <select id="new-rankGrape" style="flex:0 0 40%;">
-              <option value="" disabled selected>Grape Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <select id="new-grape">${grapes.map(g=>`<option value="${g}">${g}</option>`).join('')}</select>
-        </div>
-        <div class="form-group"><label>Sweetness</label><select id="new-sweetness">
-          <option value="Dry">Dry</option><option value="Off-Dry">Off-Dry</option><option value="Medium-Dry">Medium-Dry</option><option value="Medium-Sweet">Medium-Sweet</option><option value="Sweet">Sweet</option><option value="Luscious">Luscious</option>
-        </select></div>
-        <div class="form-group"><label>Acidity</label><select id="new-acidity">
-          <option value="Low">Low</option><option value="Medium(-)">Medium(-)</option><option value="Medium">Medium</option><option value="Medium(+)">Medium(+)</option><option value="High">High</option>
-        </select></div>
-        <!-- Quality selection removed as requested -->
-        <div class="form-group"><label>Smell (choose up to 4)</label><select id="new-smell" multiple size="6">${smellOptions.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Taste (choose up to 4)</label><select id="new-taste" multiple size="6">${tasteOptions.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Colour Type</label><select id="new-colourTypes">${colourOptions.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Colour Intensity</label><select id="new-colourIntensity">${colourIntensityOptions.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Notes</label><textarea id="new-notes" placeholder="Optional notes"></textarea></div>
-        <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1rem;">
-          <button class="btn" id="cancel">Cancel</button>
-          <button class="btn" id="save">Save</button>
-        </div>
-        <!-- Padding spacer for scroll: add extra blank space at bottom of the form -->
-        <div style="height: 3rem;"></div>
-      `;
-      modalContent.querySelector('#cancel').onclick = closeModal;
-      // make multi-selects easier on touch devices: clicking toggles selection
-      // and a maximum of 4 items can be selected. Without modifier keys this
-      // behaviour allows users to tap to select/deselect options individually.
-      function setupToggleLimit(selectEl, max = 4) {
-        Array.from(selectEl.options).forEach(opt => {
-          opt.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            // toggle selection state
-            opt.selected = !opt.selected;
-            // if now selected and limit exceeded, revert and warn
-            if (opt.selected && selectEl.selectedOptions.length > max) {
-              opt.selected = false;
-              alert(`You can select up to ${max} items.`);
-            }
-          });
-        });
+      'Aglianico','Albariño','Barbera','Blaufränkisch','Cabernet Franc','Cabernet Sauvignon','Carmenère','Chardonnay','Chenin Blanc','Dolcetto','Fiano','Gamay','Gewürztraminer','Grüner Veltliner','Malbec','Marsanne','Merlot','Mourvèdre','Nebbiolo','Nero d\'Avola','Palomino','Petit Verdot','Pinot Blanc','Pinot Grigio','Pinot Meunier','Pinot Noir','Riesling','Sangiovese','Sauvignon Blanc','Sémillon','Syrah/Shiraz','Tempranillo','Touriga Nacional','Viognier','Zinfandel'];
+    const smellOptions = [
+      'Rose','Violet','Acacia','Elderflower','Citrus: Lemon','Citrus: Lime','Citrus: Grapefruit','Orange','Stone Fruit: Peach','Stone Fruit: Apricot','Stone Fruit: Nectarine','Tropical: Pineapple','Tropical: Mango','Tropical: Banana','Tropical: Passion Fruit','Red Fruit: Strawberry','Red Fruit: Raspberry','Red Fruit: Red Cherry','Red Fruit: Cranberry','Black Fruit: Blackberry','Black Fruit: Blackcurrant','Black Fruit: Black Cherry','Black Fruit: Plum','Herbal: Grass','Herbal: Mint','Spice: Black Pepper','Spice: Clove','Dried Fruit','Leather','Mushroom','Honey','Nutty'];
+    const tasteOptions = [...smellOptions];
+    // Populate grape and rating selects
+    const grapeSelect = document.getElementById('grape');
+    grapes.sort().forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g;
+      grapeSelect.appendChild(opt);
+    });
+    function populateRatingSelect(id) {
+      const sel = document.getElementById(id);
+      for (let i=1; i<=10; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        sel.appendChild(opt);
       }
-      setupToggleLimit(modalContent.querySelector('#new-smell'), 4);
-      setupToggleLimit(modalContent.querySelector('#new-taste'), 4);
-      modalContent.querySelector('#save').onclick = () => {
-        const vineyard = modalContent.querySelector('#new-vineyard').value.trim();
-        const wineName = modalContent.querySelector('#new-wineName').value.trim();
-        const vintage = modalContent.querySelector('#new-vintage').value;
-        const grape = modalContent.querySelector('#new-grape').value;
-        const rawRankWine = modalContent.querySelector('#new-rankWine').value;
-        const rankWine = rawRankWine ? parseInt(rawRankWine) : null;
-        const rawRankWinery = modalContent.querySelector('#new-rankWinery').value;
-        const rankWinery = rawRankWinery ? parseInt(rawRankWinery) : null;
-        const rawRankGrape = modalContent.querySelector('#new-rankGrape').value;
-        const rankGrape = rawRankGrape ? parseInt(rawRankGrape) : null;
-        const sweetness = modalContent.querySelector('#new-sweetness').value;
-        const acidity = modalContent.querySelector('#new-acidity').value;
-        const smell = Array.from(modalContent.querySelector('#new-smell').selectedOptions).map(o=>o.value);
-        const taste = Array.from(modalContent.querySelector('#new-taste').selectedOptions).map(o=>o.value);
-        const selectedColour = modalContent.querySelector('#new-colourTypes').value;
-        const colourTypes = selectedColour ? [selectedColour] : [];
-        const colourIntensity = modalContent.querySelector('#new-colourIntensity').value;
-        const notes = modalContent.querySelector('#new-notes').value.trim();
-        // quality field removed. Save tasting without quality property.  Initialise timesBought to 1.
-        tastings.push({
-          vineyard,
-          wineName,
-          vintage,
-          grape,
-          rankWine,
-          rankWinery,
-          rankGrape,
-          sweetness,
-          acidity,
-          smell,
-          taste,
-          colourTypes,
-          colourIntensity,
-          notes,
-          timesBought: 1,
-        });
-        closeModal();
-        render();
-      };
-      showModal(modalContent);
     }
-
-    // Show edit form for an existing tasting at given index
-    function showEditTastingForm(idx) {
-      const t = tastings[idx];
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
-      modalContent.innerHTML = `<h2>Edit Tasting</h2>`;
-      // Build form similar to New Tasting but pre-filled
-      modalContent.innerHTML += `
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Vineyard / Winery</label>
-            <select id="edit-rankWinery" style="flex:0 0 40%;">
-              <option value="" disabled ${t.rankWinery ? '' : 'selected'}>Winery Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${t.rankWinery===i+1?'selected':''}>${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <input id="edit-vineyard" type="text" value="${t.vineyard || ''}" placeholder="e.g., Domaine de la Romanée‑Conti" />
-        </div>
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Wine Name</label>
-            <select id="edit-rankWine" style="flex:0 0 40%;">
-              <option value="" disabled ${t.rankWine ? '' : 'selected'}>Wine Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${t.rankWine===i+1?'selected':''}>${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <input id="edit-wineName" type="text" value="${t.wineName || ''}" placeholder="e.g., Montrachet Grand Cru" />
-        </div>
-        <div class="form-group"><label>Vintage Year</label><input id="edit-vintage" type="number" min="1900" max="${new Date().getFullYear()}" value="${t.vintage || ''}" placeholder="e.g., 2018" /></div>
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <label>Grape</label>
-            <select id="edit-rankGrape" style="flex:0 0 40%;">
-              <option value="" disabled ${t.rankGrape ? '' : 'selected'}>Grape Rating (1–10)</option>
-              ${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${t.rankGrape===i+1?'selected':''}>${i+1}</option>`).join('')}
-            </select>
-          </div>
-          <select id="edit-grape">${grapes.map(g=>`<option value="${g}" ${t.grape===g?'selected':''}>${g}</option>`).join('')}</select>
-        </div>
-        <div class="form-group"><label>Sweetness</label><select id="edit-sweetness">
-          ${['Dry','Off-Dry','Medium-Dry','Medium-Sweet','Sweet','Luscious'].map(v=>`<option value="${v}" ${t.sweetness===v?'selected':''}>${v}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Acidity</label><select id="edit-acidity">
-          ${['Low','Medium(-)','Medium','Medium(+)','High'].map(v=>`<option value="${v}" ${t.acidity===v?'selected':''}>${v}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Smell (choose up to 4)</label><select id="edit-smell" multiple size="6">
-          ${smellOptions.map(o=>`<option value="${o}" ${t.smell && t.smell.includes(o) ? 'selected' : ''}>${o}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Taste (choose up to 4)</label><select id="edit-taste" multiple size="6">
-          ${tasteOptions.map(o=>`<option value="${o}" ${t.taste && t.taste.includes(o) ? 'selected' : ''}>${o}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Colour Type</label><select id="edit-colourTypes">
-          ${colourOptions.map(o=>`<option value="${o}" ${t.colourTypes && t.colourTypes.includes(o) ? 'selected' : ''}>${o}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Colour Intensity</label><select id="edit-colourIntensity">
-          ${colourIntensityOptions.map(o=>`<option value="${o}" ${t.colourIntensity===o ? 'selected' : ''}>${o}</option>`).join('')}
-        </select></div>
-        <div class="form-group"><label>Notes</label><textarea id="edit-notes" placeholder="Optional notes">${t.notes || ''}</textarea></div>
-        <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1rem;">
-          <button class="btn" id="edit-cancel">Cancel</button>
-          <button class="btn" id="edit-save">Save</button>
-        </div>
-        <!-- Padding spacer for scroll: add extra blank space at bottom of the form -->
-        <div style="height: 3rem;"></div>
-      `;
-      // After building, set up event handlers
-      modalContent.querySelector('#edit-cancel').onclick = closeModal;
-      // Setup multi-select toggles with limit 4 for smell and taste
-      function setupToggleLimit(selectEl, max = 4) {
-        Array.from(selectEl.options).forEach(opt => {
-          opt.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            opt.selected = !opt.selected;
-            if (opt.selected && selectEl.selectedOptions.length > max) {
-              opt.selected = false;
-              alert(`You can select up to ${max} items.`);
-            }
-          });
+    populateRatingSelect('wineRating');
+    populateRatingSelect('wineryRating');
+    populateRatingSelect('grapeRating');
+    // Populate smell and taste chips
+    function createChips(containerId, options) {
+      const container = document.getElementById(containerId);
+      options.sort().forEach(item => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = item;
+        chip.addEventListener('click', () => {
+          // Toggle selection; limit to 4 chips
+          const selected = [...container.querySelectorAll('.chip.selected')];
+          if (chip.classList.contains('selected')) {
+            chip.classList.remove('selected');
+          } else if (selected.length < 4) {
+            chip.classList.add('selected');
+          }
         });
-      }
-      setupToggleLimit(modalContent.querySelector('#edit-smell'), 4);
-      setupToggleLimit(modalContent.querySelector('#edit-taste'), 4);
-      modalContent.querySelector('#edit-save').onclick = () => {
-        const vineyardVal = modalContent.querySelector('#edit-vineyard').value.trim();
-        const wineNameVal = modalContent.querySelector('#edit-wineName').value.trim();
-        const vintageVal = modalContent.querySelector('#edit-vintage').value;
-        const grapeVal = modalContent.querySelector('#edit-grape').value;
-        const rankWineRaw = modalContent.querySelector('#edit-rankWine').value;
-        const rankWineVal = rankWineRaw ? parseInt(rankWineRaw) : null;
-        const rankWineryRaw = modalContent.querySelector('#edit-rankWinery').value;
-        const rankWineryVal = rankWineryRaw ? parseInt(rankWineryRaw) : null;
-        const rankGrapeRaw = modalContent.querySelector('#edit-rankGrape').value;
-        const rankGrapeVal = rankGrapeRaw ? parseInt(rankGrapeRaw) : null;
-        const sweetnessVal = modalContent.querySelector('#edit-sweetness').value;
-        const acidityVal = modalContent.querySelector('#edit-acidity').value;
-        const smellVals = Array.from(modalContent.querySelector('#edit-smell').selectedOptions).map(o=>o.value);
-        const tasteVals = Array.from(modalContent.querySelector('#edit-taste').selectedOptions).map(o=>o.value);
-        const colourVal = modalContent.querySelector('#edit-colourTypes').value;
-        const colourTypesVal = colourVal ? [colourVal] : [];
-        const colourIntensityVal = modalContent.querySelector('#edit-colourIntensity').value;
-        const notesVal = modalContent.querySelector('#edit-notes').value.trim();
-        // Update the existing tasting
-        tastings[idx] = {
-          ...tastings[idx],
-          vineyard: vineyardVal,
-          wineName: wineNameVal,
-          vintage: vintageVal,
-          grape: grapeVal,
-          rankWine: rankWineVal,
-          rankWinery: rankWineryVal,
-          rankGrape: rankGrapeVal,
-          sweetness: sweetnessVal,
-          acidity: acidityVal,
-          smell: smellVals,
-          taste: tasteVals,
-          colourTypes: colourTypesVal,
-          colourIntensity: colourIntensityVal,
-          notes: notesVal,
-        };
-        closeModal();
-        render();
-        showGrapeDetail(grapeVal);
-      };
-      showModal(modalContent);
-    }
-    function showLibrary() {
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
-      modalContent.innerHTML = `<h2>Tasting Library</h2><p>Select a grape to view tastings.</p>`;
-      const grapeList = document.createElement('div');
-      grapeList.className = 'list';
-      const grouped = tastings.reduce((acc,t) => (acc[t.grape]=(acc[t.grape]||[]).concat(t), acc), {});
-      Object.keys(grouped).forEach(g => {
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        item.innerHTML = `<span class="link">${g}</span> (${grouped[g].length})`;
-        item.querySelector('.link').onclick = () => showGrapeDetail(g);
-        grapeList.appendChild(item);
+        container.appendChild(chip);
       });
-      if (Object.keys(grouped).length === 0) {
-        grapeList.innerHTML = '<p>No tastings yet.</p>';
-      }
-      modalContent.appendChild(grapeList);
-      // Remove any existing floating buttons before adding new one
-      removeFloatingButtons();
-      showModal(modalContent);
-      // Add floating Close button at the bottom-left of the viewport
-      const floatContainer = document.createElement('div');
-      floatContainer.id = 'floating-buttons';
-      floatContainer.style.position = 'fixed';
-      floatContainer.style.bottom = '1rem';
-      // Position to bottom left
-      floatContainer.style.left = '1rem';
-      floatContainer.style.right = 'auto';
-      floatContainer.style.transform = 'none';
-      floatContainer.style.zIndex = '200';
-      floatContainer.style.display = 'flex';
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn';
-      closeBtn.textContent = 'Close';
-      closeBtn.onclick = closeModal;
-      // Enlarge the floating button by ~25%
-      closeBtn.style.padding = '0.9rem 1.2rem';
-      closeBtn.style.fontSize = '1rem';
-      floatContainer.appendChild(closeBtn);
-      document.body.appendChild(floatContainer);
     }
-    function showGrapeDetail(grape) {
-      const entries = tastings.filter(t => t.grape === grape);
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
-      modalContent.innerHTML = `<h2>${grape} Tastings</h2>`;
-      // If there are at least 3 tastings, compute common notes (smell, taste, colour)
-      if (entries.length >= 3) {
-        const smellCounts = {};
-        const tasteCounts = {};
-        const colourCounts = {};
-        entries.forEach(t => {
-          (t.smell || []).forEach(term => smellCounts[term] = (smellCounts[term] || 0) + 1);
-          (t.taste || []).forEach(term => tasteCounts[term] = (tasteCounts[term] || 0) + 1);
-          (t.colourTypes || []).forEach(term => colourCounts[term] = (colourCounts[term] || 0) + 1);
-        });
-        function topTerms(counts) {
-          return Object.entries(counts)
-            .filter(([k,v]) => v > 1)
-            .sort((a,b) => b[1] - a[1])
-            .map(([k]) => k)
-            .slice(0,5);
-        }
-        const commonSmell = topTerms(smellCounts);
-        const commonTaste = topTerms(tasteCounts);
-        const commonColour = topTerms(colourCounts);
-        const summary = document.createElement('div');
-        summary.style.marginBottom = '0.5rem';
-        summary.innerHTML = `<p><em>Common notes across your ${grape} tastings:</em></p>`;
-        if (commonSmell.length) summary.innerHTML += `<p><strong>Smell:</strong> ${commonSmell.join(', ')}</p>`;
-        if (commonTaste.length) summary.innerHTML += `<p><strong>Taste:</strong> ${commonTaste.join(', ')}</p>`;
-        if (commonColour.length) summary.innerHTML += `<p><strong>Colour:</strong> ${commonColour.join(', ')}</p>`;
-        modalContent.appendChild(summary);
-      }
-      // Search input
-      const searchWrap = document.createElement('div');
-      searchWrap.style.marginBottom = '0.5rem';
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = 'Search this grape...';
-      searchInput.style.width = '100%';
-      searchInput.style.padding = '0.4rem';
-      searchInput.style.borderRadius = '0.4rem';
-      searchInput.style.border = '1px solid #4a0816';
-      searchInput.style.background = '#10070b';
-      searchInput.style.color = '#f5e6ea';
-      searchWrap.appendChild(searchInput);
-      modalContent.appendChild(searchWrap);
-      // Table container
-      // Build a more mobile-friendly table. Each tasting spans multiple rows to stack
-      // winery, wine name, notes, and actions vertically, with the index spanning rows.
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      // Only two header columns: index and details
-      thead.innerHTML = `<tr><th>#</th><th>Details</th></tr>`;
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-      table.appendChild(tbody);
-      modalContent.appendChild(table);
-      // Function to render rows based on search
-      function renderRows() {
-        const q = searchInput.value.trim().toLowerCase();
-        tbody.innerHTML = '';
-        // Determine wrap width based on the search bar width. This ensures
-        // that the detail cells wrap text at roughly the same width as the
-        // search input. Note: offsetWidth includes padding and border.
-        const wrapWidth = searchInput.offsetWidth;
-        // Save for stats page so names wrap similarly there
-        lastSearchWidth = wrapWidth;
-        entries.forEach((t,i) => {
-          // Filter by search query: match wine name, vineyard, notes
-          const text = `${t.wineName || ''} ${t.vineyard || ''} ${t.notes || ''}`.toLowerCase();
-          if (q && !text.includes(q)) return;
-          const idx = tastings.indexOf(t);
-          // Determine wine display with vintage
-          const wineDisplay = t.wineName ? `${t.wineName}${t.vintage ? ' ('+(t.vintage || 'NV')+')' : ''}` : '';
-          // Create multiple rows per entry: winery, wine name, notes, ratings, purchased
-          // Row 1: index cell spanning 5 rows and Winery name
-          const tr1 = document.createElement('tr');
-          const tdIndex = document.createElement('td');
-          tdIndex.rowSpan = 5;
-          tdIndex.textContent = (i+1).toString();
-          tr1.appendChild(tdIndex);
-          const tdWinery = document.createElement('td');
-          tdWinery.colSpan = 1;
-          tdWinery.innerHTML = `<strong>Winery:</strong> ${t.vineyard || '-'}`;
-          // Apply max-width to wrap text at search bar width
-          // Allow the details column to expand fully by not constraining maxWidth.  This
-          // expands the details column right up against the index column, removing dead space.
-          tr1.appendChild(tdWinery);
-          tbody.appendChild(tr1);
-          // Remove border on this row to avoid vine border inside group
-          Array.from(tr1.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 2: Wine name
-          const tr2 = document.createElement('tr');
-          const tdWine = document.createElement('td');
-          tdWine.innerHTML = `<strong>Wine:</strong> ${wineDisplay || '-'}`;
-          // Apply max-width
-          // Allow details column to expand fully for wine name
-          tr2.appendChild(tdWine);
-          tbody.appendChild(tr2);
-          Array.from(tr2.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 3: Notes
-          const tr3 = document.createElement('tr');
-          const tdNotes = document.createElement('td');
-          tdNotes.innerHTML =
-            `<strong>Sweetness:</strong> ${t.sweetness}<br/>` +
-            `<strong>Acidity:</strong> ${t.acidity}<br/>` +
-            `<strong>Smell:</strong> ${t.smell && t.smell.length ? t.smell.join(', ') : '-' }<br/>` +
-            `<strong>Taste:</strong> ${t.taste && t.taste.length ? t.taste.join(', ') : '-' }<br/>` +
-            `<strong>Colour:</strong> ${t.colourTypes && t.colourTypes.length ? t.colourTypes.join(', ') + ' ' + (t.colourIntensity || '') : '-' }`;
-          // Allow details column to expand fully for notes
-          tr3.appendChild(tdNotes);
-          tbody.appendChild(tr3);
-          Array.from(tr3.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 4: Purchased (no wrapping)
-          const tr4 = document.createElement('tr');
-          const tdPurch = document.createElement('td');
-          tdPurch.style.whiteSpace = 'nowrap';
-          // Purchased label
-          const purchaseText = document.createElement('span');
-          purchaseText.textContent = `Purchased: ${t.timesBought || 1}`;
-          tdPurch.appendChild(purchaseText);
-          // minus button
-          const minusBtn = document.createElement('button');
-          minusBtn.textContent = '\u2212';
-          minusBtn.className = 'small-btn';
-          minusBtn.style.marginLeft = '0.4rem';
-          minusBtn.onclick = () => {
-            const current = tastings[idx].timesBought || 1;
-            if (current > 0) {
-              tastings[idx].timesBought = current - 1;
-              render();
-              showGrapeDetail(grape);
-            }
-          };
-          // Purchased row should not constrain width; let it expand fully
-          tdPurch.appendChild(minusBtn);
-          // plus button
-          const plusBtn = document.createElement('button');
-          plusBtn.textContent = '+';
-          plusBtn.className = 'small-btn';
-          plusBtn.style.marginLeft = '0.2rem';
-          plusBtn.onclick = () => {
-            tastings[idx].timesBought = (tastings[idx].timesBought || 0) + 1;
-            render();
-            showGrapeDetail(grape);
-          };
-          tdPurch.appendChild(plusBtn);
-          tr4.appendChild(tdPurch);
-          tbody.appendChild(tr4);
-          // Remove border on row4 to avoid vine separators inside group
-          Array.from(tr4.children).forEach(cell => cell.style.borderBottom = 'none');
-          // Row 5: Ratings and actions (no wrapping) – placed after Purchased
-          const tr5 = document.createElement('tr');
-          const tdRatings = document.createElement('td');
-          tdRatings.style.whiteSpace = 'nowrap';
-          // Ratings text
-          let ratingsText = '';
-          if (t.rankWine) ratingsText += `W:${t.rankWine}`;
-          if (t.rankWinery) ratingsText += (ratingsText ? ', ' : '') + `V:${t.rankWinery}`;
-          if (t.rankGrape) ratingsText += (ratingsText ? ', ' : '') + `G:${t.rankGrape}`;
-          if (ratingsText) {
-            tdRatings.innerHTML = `<strong>Ratings:</strong> ${ratingsText}`;
-          }
-          // Append Edit and Delete buttons below ratings
-          const actionWrap = document.createElement('span');
-          actionWrap.style.marginLeft = ratingsText ? '0.6rem' : '0';
-          // Edit button
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.className = 'btn';
-          editBtn.style.background = 'var(--wine-300)';
-          editBtn.style.padding = '0.3rem 0.6rem';
-          editBtn.style.fontSize = '0.8rem';
-          editBtn.style.marginRight = '0.4rem';
-          editBtn.onclick = () => {
-            showEditTastingForm(idx);
-          };
-          actionWrap.appendChild(editBtn);
-          // Delete button
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.className = 'btn';
-          delBtn.style.background = 'var(--wine-400)';
-          delBtn.style.padding = '0.3rem 0.6rem';
-          delBtn.style.fontSize = '0.8rem';
-          delBtn.onclick = () => {
-            if (confirm('Delete this tasting?')) {
-              tastings.splice(idx, 1);
-              render();
-              showGrapeDetail(grape);
-            }
-          };
-          actionWrap.appendChild(delBtn);
-          tdRatings.appendChild(actionWrap);
-          // Ratings row: allow full width (no max width constraint)
-          tr5.appendChild(tdRatings);
-          tbody.appendChild(tr5);
-        });
+    createChips('smellChips', smellOptions);
+    createChips('tasteChips', tasteOptions);
 
-        // Add a couple of extra blank rows to allow scrolling further down on mobile
-        for (let padIdx = 0; padIdx < 2; padIdx++) {
-          const padRow = document.createElement('tr');
-          const padCell = document.createElement('td');
-          padCell.colSpan = 2;
-          padCell.innerHTML = '&nbsp;';
-          padCell.style.height = '1.5rem';
-          padRow.appendChild(padCell);
-          tbody.appendChild(padRow);
-        }
-      }
-      searchInput.oninput = renderRows;
-      renderRows();
-      // Remove existing floating buttons and show modal content
-      removeFloatingButtons();
-      showModal(modalContent);
-      // Add floating Back button at bottom-left of viewport
-      const floatContainer = document.createElement('div');
-      floatContainer.id = 'floating-buttons';
-      floatContainer.style.position = 'fixed';
-      floatContainer.style.bottom = '1rem';
-      floatContainer.style.left = '1rem';
-      floatContainer.style.right = 'auto';
-      floatContainer.style.transform = 'none';
-      floatContainer.style.zIndex = '200';
-      floatContainer.style.display = 'flex';
-      const backBtn = document.createElement('button');
-      backBtn.className = 'btn';
-      backBtn.textContent = 'Back';
-      backBtn.onclick = showLibrary;
-      // Enlarge the floating button by ~25%
-      backBtn.style.padding = '0.9rem 1.2rem';
-      backBtn.style.fontSize = '1rem';
-      floatContainer.appendChild(backBtn);
-      document.body.appendChild(floatContainer);
+    // Example counters; replace these with actual data if storing tastings
+    let tastings = [];
+    function updateStats() {
+      const tastingCount = tastings.length;
+      const grapeCount = new Set(tastings.map(t => t.grape)).size;
+      animateNumber('tastingCount', tastingCount);
+      animateNumber('grapeCount', grapeCount);
     }
-    function showStats() {
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
-      // Insert a small spacer above the header to push content down on mobile
-      const topSpacer = document.createElement('div');
-      // Provide extra vertical space above the stats header to move it down on
-      // mobile screens. Increase height from 1rem to 1.5rem for improved spacing.
-      topSpacer.style.height = '1.5rem';
-      modalContent.appendChild(topSpacer);
-      const headerEl = document.createElement('h2');
-      headerEl.textContent = 'Detailed Stats';
-      modalContent.appendChild(headerEl);
-      // Compute counts per grape
-      const grapeCounts = tastings.reduce((acc,t) => {
-        acc[t.grape] = (acc[t.grape] || 0) + 1;
-        return acc;
-      }, {});
-      /**
-       * Compute weighted top list for a given key and rating key. Weight by timesBought.
-       * Each rating contributes weight equal to timesBought. The average is weighted average.
-       * Returns an array of objects sorted by descending weighted average, limited to top 10.
-       */
-      function computeWeightedTop(arr, key, ratingKey) {
-        // Group tastings by the specified key (wineName, vineyard, grape) and accumulate
-        // rating sums and weights based on timesBought.  The weighted average is
-        // calculated as sum(weighted ratings) / total weight.  For ranking, we
-        // emphasise frequently purchased items by multiplying the average by a factor
-        // proportional to the weight (1 + weight/10).  This gives a slight boost
-        // to wines/wineries/grapes that are bought more often, even if the average
-        // rating is slightly lower.
-        const grouped = {};
-        arr.forEach(t => {
-          const k = t[key] || 'Unknown';
-          if (!grouped[k]) grouped[k] = { sum: 0, weight: 0 };
-          const rating = t[ratingKey];
-          const weight = t.timesBought || 1;
-          if (rating != null) {
-            grouped[k].sum += rating * weight;
-            grouped[k].weight += weight;
-          }
-        });
-        const items = Object.entries(grouped).map(([name, obj]) => {
-          const avg = obj.weight ? obj.sum / obj.weight : 0;
-          // compute a score emphasising purchase frequency.  Multiply the average
-          // rating by the total weight (times bought) so that wines/wineries/grapes
-          // purchased more often rank higher even if their average rating is lower.
-          const score = avg * (obj.weight || 0);
-          return { name, avg, weight: obj.weight, score };
-        });
-        return items.sort((a,b) => b.score - a.score).slice(0, 10);
+    function animateNumber(id, target) {
+      const el = document.getElementById(id);
+      const duration = 800;
+      const startTime = performance.now();
+      function step(currentTime) {
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+        const value = Math.floor(progress * target);
+        el.textContent = value;
+        if (progress < 1) requestAnimationFrame(step);
       }
-      // Helper to build a table with vine-style separators
-      // Build a table for stats with a dynamic max width for the first column.  The
-      // first column (name) will wrap at the same width as the library search bar if
-      // known (lastSearchWidth).  Otherwise a default of 240px is used.
-      function buildTable(headers, rows) {
-        const wrapWidth = lastSearchWidth || 240;
-        const table = document.createElement('table');
-        const thead = document.createElement('thead');
-        thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
-        rows.forEach(row => {
-          const tr = document.createElement('tr');
-          row.forEach((cell, idx) => {
-            const td = document.createElement('td');
-            td.innerHTML = cell;
-            // Apply max width to the first column to control wrapping and
-            // override the global width rule. Also allow width to auto expand.
-            if (idx === 0) {
-              td.style.maxWidth = wrapWidth + 'px';
-              td.style.width = 'auto';
-              td.style.wordBreak = 'break-word';
-            }
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        // Override first header cell width for readability
-        const firstTh = thead.querySelector('th:first-child');
-        if (firstTh) {
-          firstTh.style.width = 'auto';
-          firstTh.style.maxWidth = wrapWidth + 'px';
-          firstTh.style.wordBreak = 'break-word';
-        }
-        return table;
-      }
-      const wrapper = document.createElement('div');
-      wrapper.style.display = 'flex';
-      wrapper.style.flexDirection = 'column';
-      wrapper.style.gap = '1rem';
-      // Counts by grape section
-      const countsDiv = document.createElement('div');
-      const countsTitle = document.createElement('h3');
-      countsTitle.textContent = 'Counts by Grape';
-      countsDiv.appendChild(countsTitle);
-      if (Object.keys(grapeCounts).length === 0) {
-        const p = document.createElement('p');
-        p.textContent = 'No stats available yet.';
-        countsDiv.appendChild(p);
-      } else {
-        // Build table
-        const rows = Object.keys(grapeCounts).sort().map(g => [g, grapeCounts[g]]);
-        const table = buildTable(['Grape','Tastings'], rows);
-        countsDiv.appendChild(table);
-      }
-      wrapper.appendChild(countsDiv);
-      // Weighted top rated wines
-      const weightedWines = computeWeightedTop(tastings, 'wineName', 'rankWine');
-      const winesDiv = document.createElement('div');
-      const winesTitle = document.createElement('h3');
-      // Remove the word "Weighted" from section titles as the weighting is hidden in the calculation
-      winesTitle.textContent = 'Top Rated Wines';
-      winesDiv.appendChild(winesTitle);
-      if (weightedWines.length === 0) {
-        const p = document.createElement('p');
-        p.textContent = 'No ratings yet.';
-        winesDiv.appendChild(p);
-      } else {
-        // Two columns: Name and Stats (Avg + Weight)
-        const rows = weightedWines.map(item => [
-          item.name,
-          `Avg: ${item.avg.toFixed(1)}<br/>Weight: ${item.weight}`
-        ]);
-        const table = buildTable(['Wine','Stats'], rows);
-        winesDiv.appendChild(table);
-      }
-      wrapper.appendChild(winesDiv);
-      // Weighted top rated wineries
-      const weightedWineries = computeWeightedTop(tastings, 'vineyard', 'rankWinery');
-      const wineryDiv = document.createElement('div');
-      const wineryTitle = document.createElement('h3');
-      wineryTitle.textContent = 'Top Rated Wineries';
-      wineryDiv.appendChild(wineryTitle);
-      if (weightedWineries.length === 0) {
-        const p = document.createElement('p');
-        p.textContent = 'No ratings yet.';
-        wineryDiv.appendChild(p);
-      } else {
-        const rows = weightedWineries.map(item => [
-          item.name,
-          `Avg: ${item.avg.toFixed(1)}<br/>Weight: ${item.weight}`
-        ]);
-        const table = buildTable(['Winery','Stats'], rows);
-        wineryDiv.appendChild(table);
-      }
-      wrapper.appendChild(wineryDiv);
-      // Weighted top rated grapes
-      const weightedGrapes = computeWeightedTop(tastings, 'grape', 'rankGrape');
-      const grapesDiv = document.createElement('div');
-      const grapesTitle = document.createElement('h3');
-      grapesTitle.textContent = 'Top Rated Grapes';
-      grapesDiv.appendChild(grapesTitle);
-      if (weightedGrapes.length === 0) {
-        const p = document.createElement('p');
-        p.textContent = 'No ratings yet.';
-        grapesDiv.appendChild(p);
-      } else {
-        const rows = weightedGrapes.map(item => [
-          item.name,
-          `Avg: ${item.avg.toFixed(1)}<br/>Weight: ${item.weight}`
-        ]);
-        const table = buildTable(['Grape','Stats'], rows);
-        grapesDiv.appendChild(table);
-      }
-      wrapper.appendChild(grapesDiv);
-      // Add some vertical space at the end to allow the page to scroll a bit higher on mobile
-      const statsSpacer = document.createElement('div');
-      statsSpacer.style.height = '3rem';
-      wrapper.appendChild(statsSpacer);
-      modalContent.appendChild(wrapper);
-      // Remove existing floating buttons and show modal
-      removeFloatingButtons();
-      showModal(modalContent);
-      // Add floating Close button at bottom-left of viewport
-      const floatContainer = document.createElement('div');
-      floatContainer.id = 'floating-buttons';
-      floatContainer.style.position = 'fixed';
-      floatContainer.style.bottom = '1rem';
-      floatContainer.style.left = '1rem';
-      floatContainer.style.right = 'auto';
-      floatContainer.style.transform = 'none';
-      floatContainer.style.zIndex = '200';
-      floatContainer.style.display = 'flex';
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn';
-      closeBtn.textContent = 'Close';
-      closeBtn.onclick = closeModal;
-      // Enlarge the floating button by ~25%
-      closeBtn.style.padding = '0.9rem 1.2rem';
-      closeBtn.style.fontSize = '1rem';
-      floatContainer.appendChild(closeBtn);
-      document.body.appendChild(floatContainer);
+      requestAnimationFrame(step);
     }
-    // Initial render
-    render();
+    // Show/hide New Tasting section
+    const newTastingBtn = document.getElementById('newTastingBtn');
+    const newTastingSection = document.getElementById('newTastingSection');
+    const cancelBtn = document.getElementById('cancelBtn');
+    newTastingBtn.addEventListener('click', () => {
+      newTastingSection.style.display = 'block';
+      window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
+    });
+    cancelBtn.addEventListener('click', () => {
+      newTastingSection.style.display = 'none';
+      document.getElementById('vineyard').value = '';
+      document.getElementById('wineName').value = '';
+      document.getElementById('vintage').value = '';
+      document.getElementById('grape').selectedIndex = 0;
+      document.getElementById('wineRating').selectedIndex = 0;
+      document.getElementById('wineryRating').selectedIndex = 0;
+      document.getElementById('grapeRating').selectedIndex = 0;
+      document.getElementById('sweetness').selectedIndex = 0;
+      document.getElementById('acidity').selectedIndex = 0;
+      document.getElementById('colourType').selectedIndex = 0;
+      document.getElementById('colourIntensity').selectedIndex = 0;
+      document.getElementById('notes').value = '';
+      // Reset chips
+      document.querySelectorAll('.chip.selected').forEach(chip => chip.classList.remove('selected'));
+    });
+    // Save tasting
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const t = {
+        vineyard: document.getElementById('vineyard').value.trim(),
+        wineName: document.getElementById('wineName').value.trim(),
+        vintage: document.getElementById('vintage').value.trim(),
+        grape: document.getElementById('grape').value,
+        wineRating: document.getElementById('wineRating').value,
+        wineryRating: document.getElementById('wineryRating').value,
+        grapeRating: document.getElementById('grapeRating').value,
+        sweetness: document.getElementById('sweetness').value,
+        acidity: document.getElementById('acidity').value,
+        smell: [...document.querySelectorAll('#smellChips .chip.selected')].map(ch => ch.textContent),
+        taste: [...document.querySelectorAll('#tasteChips .chip.selected')].map(ch => ch.textContent),
+        colour: document.getElementById('colourType').value,
+        intensity: document.getElementById('colourIntensity').value,
+        notes: document.getElementById('notes').value.trim(),
+        createdAt: new Date().toISOString()
+      };
+      tastings.push(t);
+      // Reset form and hide
+      cancelBtn.click();
+      // Update stats
+      updateStats();
+      // Show toast
+      const toast = document.getElementById('toast');
+      toast.textContent = 'Tasting saved!';
+      toast.style.opacity = 1;
+      setTimeout(() => toast.style.opacity = 0, 2000);
+    });
+    // Initialize counters
+    updateStats();
   </script>
 </body>
 </html>
