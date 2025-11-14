@@ -474,9 +474,12 @@
       text-align: left;
     }
     .stats-category-card .stat-value {
-      flex-shrink: 0;
+      flex-shrink: 1;
       text-align: right;
       margin-left: 1rem;
+      /* Allow long lists to wrap within the card */
+      white-space: normal;
+      word-break: break-word;
     }
 
     /* Descriptor groups for smell/taste */
@@ -627,28 +630,6 @@
             </select>
           </div>
         </div>
-        <!-- Ratings -->
-        <div class="section">
-          <div class="section-title">Ratings</div>
-          <div class="field">
-            <label for="wineRating">Wine Rating (1–10)</label>
-            <select id="wineRating">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="wineryRating">Winery Rating (1–10)</label>
-            <select id="wineryRating">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="grapeRating">Grape Rating (1–10)</label>
-            <select id="grapeRating">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
-        </div>
         <!-- Profile -->
         <div class="section">
           <div class="section-title">Profile</div>
@@ -678,7 +659,7 @@
         </div>
         <!-- Aromas & Flavors -->
         <div class="section">
-          <div class="section-title">Smell (select up to 4)</div>
+          <div class="section-title">Aromas (select up to 4)</div>
           <div class="chip-container" id="smellChips"></div>
         </div>
         <div class="section">
@@ -712,6 +693,28 @@
               <option value="Light">Light</option>
               <option value="Medium">Medium</option>
               <option value="Deep">Deep</option>
+            </select>
+          </div>
+        </div>
+        <!-- Ratings (moved below Colour to just above Additional notes) -->
+        <div class="section">
+          <div class="section-title">Ratings</div>
+          <div class="field">
+            <label for="wineRating">Wine Rating (1–10)</label>
+            <select id="wineRating">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wineryRating">Winery Rating (1–10)</label>
+            <select id="wineryRating">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="grapeRating">Grape Rating (1–10)</label>
+            <select id="grapeRating">
+              <option value="">-- Select --</option>
             </select>
           </div>
         </div>
@@ -904,7 +907,8 @@
       'Tobacco',
       'Vanilla',
       'Violet',
-      'Wet Leaves'
+      'Wet Leaves',
+      'Smokey'
     ];
     const tasteOptions = [...smellOptions];
     // Populate grape and rating selects
@@ -1428,8 +1432,8 @@
         return entries.length > 0 ? entries[0][0] : '—';
       }
       // Compute palate map
-      const topSmell = topDescriptors('smell', 5);
-      const topTaste = topDescriptors('taste', 5);
+      const topSmell = topDescriptors('smell', 3);
+      const topTaste = topDescriptors('taste', 3);
       // Structural preferences: sweetness and acidity
       const prefSweetness = mostCommon('sweetness');
       const prefAcidity = mostCommon('acidity');
@@ -1454,20 +1458,6 @@
         return scored.slice(0,5).map(item => `${item.name} (${item.avg.toFixed(1)})`);
       }
       const favouriteGrapes = topFavouriteGrapes();
-      // Compute blind spots
-      // Descriptors never chosen (smell + taste options combined)
-      const allDescriptors = new Set(smellOptions.map(s => s.toLowerCase()));
-      tastings.forEach(t => {
-        (t.smell || []).forEach(item => allDescriptors.delete(item.toLowerCase()));
-        (t.taste || []).forEach(item => allDescriptors.delete(item.toLowerCase()));
-      });
-      const neverSelected = Array.from(allDescriptors).sort().slice(0, 10).map(d => d.charAt(0).toUpperCase() + d.slice(1));
-      // Underexplored grapes: grapes with only one tasting
-      const grapeCounts = {};
-      tastings.forEach(t => {
-        grapeCounts[t.grape] = (grapeCounts[t.grape] || 0) + 1;
-      });
-      const underexplored = Object.entries(grapeCounts).filter(([g,c]) => c === 1).map(([g]) => g).slice(0,5);
       // Build HTML for insights
       let html = `<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightsClose">✕</div></div>`;
       // Palate map card
@@ -1477,11 +1467,6 @@
       html += `<div class="stat-row"><span class="stat-name">Preferred Sweetness</span><span class="stat-value">${prefSweetness}</span></div>`;
       html += `<div class="stat-row"><span class="stat-name">Preferred Acidity</span><span class="stat-value">${prefAcidity}</span></div>`;
       html += `<div class="stat-row"><span class="stat-name">Favourite Grapes</span><span class="stat-value">${favouriteGrapes.join(', ') || '—'}</span></div>`;
-      html += `</div>`;
-      // Blind spots card
-      html += `<div class="stats-category-card"><div class="stats-card-title">Your Blind Spots</div>`;
-      html += `<div class="stat-row"><span class="stat-name">Descriptors Never Chosen</span><span class="stat-value">${neverSelected.join(', ') || '—'}</span></div>`;
-      html += `<div class="stat-row"><span class="stat-name">Underexplored Grapes</span><span class="stat-value">${underexplored.join(', ') || '—'}</span></div>`;
       html += `</div>`;
       showOverlay(html);
       document.getElementById('insightsClose').addEventListener('click', closeOverlay);
