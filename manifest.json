@@ -1,0 +1,21 @@
+{
+  "name": "Wine Buddy",
+  "short_name": "Wine Buddy",
+  "start_url": "/Wine-App-Test/",
+  "scope": "/Wine-App-Test/",
+  "display": "standalone",
+  "theme_color": "#61101f",
+  "background_color": "#2c0510",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

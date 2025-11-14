@@ -6,6 +6,10 @@
   <title>Wine Buddy</title>
   <!-- Google fonts for premium typography -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <!-- Theme color for PWA address bar on mobile -->
+  <meta name="theme-color" content="#61101f">
   <style>
     :root {
       /* Rich wine colour palette */
@@ -1366,6 +1370,27 @@
       // Add export button handler
       document.getElementById('exportDataBtn').addEventListener('click', () => {
         exportTastings();
+      });
+    }
+  </script>
+  <!-- Service worker registration for PWA and persistent storage request -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        // register service worker with scope relative to site root
+        navigator.serviceWorker.register('service-worker.js', { scope: './' })
+          .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(function(err) {
+            console.error('Service Worker registration failed:', err);
+          });
+      });
+    }
+    // Request persistent storage on supporting browsers to maximise data durability
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(function(granted) {
+        console.log('Persistent storage granted:', granted);
       });
     }
   </script>
