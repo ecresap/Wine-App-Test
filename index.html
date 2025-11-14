@@ -586,6 +586,19 @@
           <div class="action-desc">See your palate stats</div>
         </div>
       </div>
+      <!-- Insights card for palate map and blind spots -->
+      <div class="action-card" id="insightsBtn">
+        <div class="action-icon">
+          <!-- Star icon representing insights -->
+          <svg viewBox="0 0 24 24">
+            <polygon points="12 2 14.5 8.5 21 9 16 13 17.5 19.5 12 16 6.5 19.5 8 13 3 9 9.5 8.5 12 2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="action-title">Insights</div>
+          <div class="action-desc">Palate map & blind spots</div>
+        </div>
+      </div>
     </section>
 
     <!-- New Tasting Form (hidden by default) -->
@@ -1047,6 +1060,11 @@
       showStats();
     });
 
+    // Insights button
+    document.getElementById('insightsBtn').addEventListener('click', () => {
+      showInsights();
+    });
+
     // Show the Tasting Library
     function showLibrary() {
       // Refresh tastings from localStorage
@@ -1371,6 +1389,102 @@
       document.getElementById('exportDataBtn').addEventListener('click', () => {
         exportTastings();
       });
+    }
+
+    // Show personal insights: palate map and blind spots
+    function showInsights() {
+      // Refresh tastings from localStorage
+      tastings = getTastings();
+      const count = tastings.length;
+      if (count === 0) {
+        showOverlay(`<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightsClose">✕</div></div><p class="empty">No tastings yet.</p>`);
+        document.getElementById('insightsClose').addEventListener('click', closeOverlay);
+        return;
+      }
+      // Helper: compute top descriptors from list of arrays
+      function topDescriptors(property, limit = 5) {
+        const freq = {};
+        tastings.forEach(t => {
+          (t[property] || []).forEach(item => {
+            const key = item.trim().toLowerCase();
+            freq[key] = (freq[key] || 0) + 1 * (t.timesBought || 1);
+          });
+        });
+        const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]);
+        return sorted.slice(0, limit).map(([k, v]) => {
+          // Capitalize each word
+          return k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        });
+      }
+      // Helper: most common categorical value, weighted by timesBought
+      function mostCommon(values) {
+        const counts = {};
+        tastings.forEach(t => {
+          const val = t[values] || '';
+          const weight = t.timesBought || 1;
+          if (val) counts[val] = (counts[val] || 0) + weight;
+        });
+        const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+        return entries.length > 0 ? entries[0][0] : '—';
+      }
+      // Compute palate map
+      const topSmell = topDescriptors('smell', 5);
+      const topTaste = topDescriptors('taste', 5);
+      // Structural preferences: sweetness and acidity
+      const prefSweetness = mostCommon('sweetness');
+      const prefAcidity = mostCommon('acidity');
+      // Favourite grapes: use existing topWeighted function logic but limit to 5
+      function topFavouriteGrapes() {
+        const agg = {};
+        tastings.forEach(t => {
+          const key = t.grape || '(Unknown)';
+          const weight = t.timesBought || 1;
+          const rating = parseFloat(t.grapeRating || 0);
+          if (!agg[key]) agg[key] = { sum: 0, weight: 0 };
+          agg[key].sum += rating * weight;
+          agg[key].weight += weight;
+        });
+        const scored = Object.entries(agg).map(([k,v]) => {
+          const avg = v.weight ? v.sum / v.weight : 0;
+          const freqWeight = 1 + Math.min(v.weight, 10) * 0.05;
+          const score = avg * freqWeight;
+          return { name: k, avg: avg, weight: v.weight, score };
+        });
+        scored.sort((a,b) => b.score - a.score);
+        return scored.slice(0,5).map(item => `${item.name} (${item.avg.toFixed(1)})`);
+      }
+      const favouriteGrapes = topFavouriteGrapes();
+      // Compute blind spots
+      // Descriptors never chosen (smell + taste options combined)
+      const allDescriptors = new Set(smellOptions.map(s => s.toLowerCase()));
+      tastings.forEach(t => {
+        (t.smell || []).forEach(item => allDescriptors.delete(item.toLowerCase()));
+        (t.taste || []).forEach(item => allDescriptors.delete(item.toLowerCase()));
+      });
+      const neverSelected = Array.from(allDescriptors).sort().slice(0, 10).map(d => d.charAt(0).toUpperCase() + d.slice(1));
+      // Underexplored grapes: grapes with only one tasting
+      const grapeCounts = {};
+      tastings.forEach(t => {
+        grapeCounts[t.grape] = (grapeCounts[t.grape] || 0) + 1;
+      });
+      const underexplored = Object.entries(grapeCounts).filter(([g,c]) => c === 1).map(([g]) => g).slice(0,5);
+      // Build HTML for insights
+      let html = `<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightsClose">✕</div></div>`;
+      // Palate map card
+      html += `<div class="stats-category-card"><div class="stats-card-title">Your Palate Map</div>`;
+      html += `<div class="stat-row"><span class="stat-name">Top Aromas</span><span class="stat-value">${topSmell.join(', ') || '—'}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-name">Top Tastes</span><span class="stat-value">${topTaste.join(', ') || '—'}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-name">Preferred Sweetness</span><span class="stat-value">${prefSweetness}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-name">Preferred Acidity</span><span class="stat-value">${prefAcidity}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-name">Favourite Grapes</span><span class="stat-value">${favouriteGrapes.join(', ') || '—'}</span></div>`;
+      html += `</div>`;
+      // Blind spots card
+      html += `<div class="stats-category-card"><div class="stats-card-title">Your Blind Spots</div>`;
+      html += `<div class="stat-row"><span class="stat-name">Descriptors Never Chosen</span><span class="stat-value">${neverSelected.join(', ') || '—'}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-name">Underexplored Grapes</span><span class="stat-value">${underexplored.join(', ') || '—'}</span></div>`;
+      html += `</div>`;
+      showOverlay(html);
+      document.getElementById('insightsClose').addEventListener('click', closeOverlay);
     }
   </script>
   <!-- Service worker registration for PWA and persistent storage request -->
