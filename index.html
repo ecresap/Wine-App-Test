@@ -399,6 +399,14 @@
       align-items: flex-start;
       margin-bottom: 0.5rem;
     }
+
+    /* Make tasting entry rows match stat cards styling */
+    .tasting-entry .entry-row:not(:last-child) {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .tasting-entry .entry-row:nth-child(odd) {
+      background: rgba(255,255,255,0.04);
+    }
     .entry-label {
       font-size: 0.8rem;
       font-weight: 600;
@@ -510,6 +518,9 @@
       <h2 class="hero-headline">Discover your wine palate.</h2>
       <p class="hero-subheadline">Record tastings, track your favorite grapes, and explore your unique flavor patterns.</p>
     </section>
+
+    <!-- Paused tasting section (hidden when none) -->
+    <div id="pausedContainer" style="display:none; margin-top: 1rem;"></div>
 
     <!-- Stats Cards -->
     <section class="stats-row">
@@ -698,7 +709,7 @@
         </div>
         <!-- Ratings (moved below Colour to just above Additional notes) -->
         <div class="section">
-          <div class="section-title">Ratings</div>
+          <div class="section-title">Ratings <span style="font-size:0.75rem; font-weight:400; color: var(--wine-200);">(Optional)</span></div>
           <div class="field">
             <label for="wineRating">Wine Rating (1–10)</label>
             <select id="wineRating">
@@ -729,6 +740,7 @@
         <!-- Form Buttons -->
         <div class="form-buttons">
           <button class="btn btn-primary" id="saveBtn">Save Tasting</button>
+          <button class="btn btn-secondary" id="pauseBtn">Pause</button>
           <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
         </div>
       </div>
@@ -744,6 +756,66 @@
 
   <script src="localStorage.js"></script>
   <script>
+    // Global state for editing and paused entries
+    let editIndex = null;
+    // Helper to update paused entry UI on the landing page
+    function updatePausedUI() {
+      const pausedData = localStorage.getItem('winebuddy_paused');
+      const pausedContainer = document.getElementById('pausedContainer');
+      if (!pausedContainer) return;
+      if (pausedData) {
+        const paused = JSON.parse(pausedData);
+        // Show paused card with simple info
+        pausedContainer.style.display = 'block';
+        pausedContainer.innerHTML = `<div class="action-card" id="resumePausedBtn">
+          <div class="action-icon">
+            <!-- Pause icon -->
+            <svg viewBox="0 0 24 24"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg>
+          </div>
+          <div><div class="action-title">Resume Paused Tasting</div><div class="action-desc">${paused.wineName || 'Unfinished entry'}</div></div>
+        </div>`;
+        document.getElementById('resumePausedBtn').addEventListener('click', () => {
+          resumePaused();
+        });
+      } else {
+        pausedContainer.style.display = 'none';
+        pausedContainer.innerHTML = '';
+      }
+    }
+    // Resume a paused tasting: pre-fill form and remove paused flag
+    function resumePaused() {
+      const pausedData = localStorage.getItem('winebuddy_paused');
+      if (!pausedData) return;
+      const p = JSON.parse(pausedData);
+      // Set editIndex to null to treat as new tasting
+      editIndex = null;
+      // Pre-fill fields
+      document.getElementById('vineyard').value = p.vineyard || '';
+      document.getElementById('wineName').value = p.wineName || '';
+      document.getElementById('vintage').value = p.vintage || '';
+      document.getElementById('grape').value = p.grape || '';
+      document.getElementById('wineRating').value = p.wineRating || '';
+      document.getElementById('wineryRating').value = p.wineryRating || '';
+      document.getElementById('grapeRating').value = p.grapeRating || '';
+      document.getElementById('sweetness').value = p.sweetness || '';
+      document.getElementById('acidity').value = p.acidity || '';
+      document.getElementById('colourType').value = p.colour || '';
+      document.getElementById('colourIntensity').value = p.intensity || '';
+      document.getElementById('notes').value = p.notes || '';
+      // Reset chips
+      document.querySelectorAll('#smellChips .chip').forEach(chip => {
+        chip.classList[p.smell && p.smell.includes(chip.textContent) ? 'add' : 'remove']('selected');
+      });
+      document.querySelectorAll('#tasteChips .chip').forEach(chip => {
+        chip.classList[p.taste && p.taste.includes(chip.textContent) ? 'add' : 'remove']('selected');
+      });
+      // Remove paused from storage
+      localStorage.removeItem('winebuddy_paused');
+      updatePausedUI();
+      // Show form
+      newTastingSection.style.display = 'block';
+      window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
+    }
     // Data arrays for grapes, smell, and taste notes (alphabetical)
     const grapes = [
       'Cabernet Sauvignon',
@@ -999,10 +1071,67 @@
       document.getElementById('notes').value = '';
       // Reset chips
       document.querySelectorAll('.chip.selected').forEach(chip => chip.classList.remove('selected'));
+      // Reset editing state and save button label
+      editIndex = null;
+      const saveBtnReset = document.getElementById('saveBtn');
+      if (saveBtnReset) saveBtnReset.textContent = 'Save Tasting';
     });
-    // Save tasting
+    // Unified save button handler (new or update)
     document.getElementById('saveBtn').addEventListener('click', () => {
-      const t = {
+      // Determine if editing or new entry
+      const tData = {
+        vineyard: document.getElementById('vineyard').value.trim(),
+        wineName: document.getElementById('wineName').value.trim(),
+        vintage: document.getElementById('vintage').value.trim(),
+        grape: document.getElementById('grape').value,
+        wineRating: document.getElementById('wineRating').value,
+        wineryRating: document.getElementById('wineryRating').value,
+        grapeRating: document.getElementById('grapeRating').value,
+        sweetness: document.getElementById('sweetness').value,
+        acidity: document.getElementById('acidity').value,
+        smell: [...document.querySelectorAll('#smellChips .chip.selected')].map(ch => ch.textContent),
+        taste: [...document.querySelectorAll('#tasteChips .chip.selected')].map(ch => ch.textContent),
+        colour: document.getElementById('colourType').value,
+        intensity: document.getElementById('colourIntensity').value,
+        notes: document.getElementById('notes').value.trim()
+      };
+      // If editing existing tasting
+      if (editIndex !== null && editIndex >= 0 && editIndex < tastings.length) {
+        const existing = tastings[editIndex];
+        Object.assign(existing, tData);
+        existing.updatedAt = new Date().toISOString();
+        // Save updated list
+        saveTastings(tastings);
+        editIndex = null;
+        // Reset button text
+        document.getElementById('saveBtn').textContent = 'Save Tasting';
+      } else {
+        // New tasting
+        const newTasting = Object.assign({}, tData, {
+          createdAt: new Date().toISOString(),
+          timesBought: 1
+        });
+        addTasting(newTasting);
+        tastings = getTastings();
+      }
+      // Remove any paused entry since final save overrides pause
+      localStorage.removeItem('winebuddy_paused');
+      updatePausedUI();
+      // Reset form and hide
+      cancelBtn.click();
+      // Update stats
+      updateStats();
+      // Show toast
+      const toast = document.getElementById('toast');
+      toast.textContent = 'Tasting saved!';
+      toast.style.opacity = 1;
+      setTimeout(() => toast.style.opacity = 0, 2000);
+    });
+
+    // Pause button handler: save current draft to localStorage and hide form
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      // Collect current form state
+      const draft = {
         vineyard: document.getElementById('vineyard').value.trim(),
         wineName: document.getElementById('wineName').value.trim(),
         vintage: document.getElementById('vintage').value.trim(),
@@ -1017,24 +1146,23 @@
         colour: document.getElementById('colourType').value,
         intensity: document.getElementById('colourIntensity').value,
         notes: document.getElementById('notes').value.trim(),
-        createdAt: new Date().toISOString(),
-        timesBought: 1
       };
-      // Persist the new tasting to localStorage and refresh tastings
-      addTasting(t);
-      tastings = getTastings();
-      // Reset form and hide
+      // Store draft
+      localStorage.setItem('winebuddy_paused', JSON.stringify(draft));
+      // Update paused UI
+      updatePausedUI();
+      // Hide form and reset editing state
       cancelBtn.click();
-      // Update stats
-      updateStats();
-      // Show toast
+      // Show toast message
       const toast = document.getElementById('toast');
-      toast.textContent = 'Tasting saved!';
+      toast.textContent = 'Tasting paused!';
       toast.style.opacity = 1;
       setTimeout(() => toast.style.opacity = 0, 2000);
     });
     // Initialize counters
     updateStats();
+    // Initialize paused tasting UI
+    updatePausedUI();
 
     /* ------------------------------ Library & Stats Overlay ------------------------------ */
     const overlay = document.getElementById('overlay');
@@ -1197,7 +1325,11 @@
             </div>
             <div class="entry-row">
               <div class="entry-label">Profile:</div>
-              <div class="entry-value">${(t.sweetness || '') + (t.sweetness && t.acidity ? ', ' : '') + (t.acidity || '')}</div>
+              <div class="entry-value">
+                ${t.sweetness ? `Sweetness: ${t.sweetness}` : ''}
+                ${t.sweetness && t.acidity ? ', ' : ''}
+                ${t.acidity ? `Acidity: ${t.acidity}` : ''}
+              </div>
             </div>
             <div class="entry-row">
               <div class="entry-label">Smell:</div>
@@ -1250,25 +1382,26 @@
           const action = btn.getAttribute('data-action');
           const idx = parseInt(btn.getAttribute('data-index'));
           if (action === 'inc') {
+            // Increase purchase count and update UI without re-rendering the whole list
             tastings[idx].timesBought = (tastings[idx].timesBought || 1) + 1;
-            // Persist change
             saveTastings(tastings);
             updateStats();
-            showGrapeDetail(grape);
+            // Update the displayed number
+            const timesEl = overlayContent.querySelector(`.times[data-index="${idx}"]`);
+            if (timesEl) timesEl.textContent = tastings[idx].timesBought;
           } else if (action === 'dec') {
             tastings[idx].timesBought = Math.max(0, (tastings[idx].timesBought || 1) - 1);
-            // Persist change
             saveTastings(tastings);
             updateStats();
-            showGrapeDetail(grape);
+            const timesEl = overlayContent.querySelector(`.times[data-index="${idx}"]`);
+            if (timesEl) timesEl.textContent = tastings[idx].timesBought;
           } else if (action === 'del') {
             tastings.splice(idx, 1);
-            // Persist change
             saveTastings(tastings);
             updateStats();
+            // Refresh library list on delete
             showLibrary();
           } else if (action === 'edit') {
-            // Launch edit form
             editTasting(idx);
           }
         });
@@ -1300,40 +1433,12 @@
       // Show form
       newTastingSection.style.display = 'block';
       window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
-      // Change save button to update
+      // Set editIndex so that save handler knows we're updating
+      editIndex = index;
+      // Change save button text to indicate update
       const saveBtn = document.getElementById('saveBtn');
-      const originalText = saveBtn.textContent;
       saveBtn.textContent = 'Update Tasting';
-      // Temporarily change handler
-      const handler = function() {
-        // Update tasting
-        t.vineyard = document.getElementById('vineyard').value.trim();
-        t.wineName = document.getElementById('wineName').value.trim();
-        t.vintage = document.getElementById('vintage').value.trim();
-        t.grape = document.getElementById('grape').value;
-        t.wineRating = document.getElementById('wineRating').value;
-        t.wineryRating = document.getElementById('wineryRating').value;
-        t.grapeRating = document.getElementById('grapeRating').value;
-        t.sweetness = document.getElementById('sweetness').value;
-        t.acidity = document.getElementById('acidity').value;
-        t.smell = [...document.querySelectorAll('#smellChips .chip.selected')].map(ch => ch.textContent);
-        t.taste = [...document.querySelectorAll('#tasteChips .chip.selected')].map(ch => ch.textContent);
-        t.colour = document.getElementById('colourType').value;
-        t.intensity = document.getElementById('colourIntensity').value;
-        t.notes = document.getElementById('notes').value.trim();
-        t.updatedAt = new Date().toISOString();
-        // Save updated tastings list to localStorage
-        saveTastings(tastings);
-        // Reset form and restore button
-        cancelBtn.click();
-        saveBtn.textContent = originalText;
-        saveBtn.removeEventListener('click', handler);
-        // Update stats and refresh library or detail view
-        updateStats();
-        closeOverlay();
-      };
-      // Remove existing click handlers to avoid duplicates (not necessary if not editing multiple times quickly)
-      saveBtn.addEventListener('click', handler);
+      // Do not add additional event listener; unified save handler will handle update
     }
 
     // Show stats page
@@ -1397,79 +1502,108 @@
 
     // Show personal insights: palate map and blind spots
     function showInsights() {
-      // Refresh tastings from localStorage
+      // Refresh tastings
       tastings = getTastings();
-      const count = tastings.length;
-      if (count === 0) {
+      if (tastings.length === 0) {
         showOverlay(`<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightsClose">✕</div></div><p class="empty">No tastings yet.</p>`);
         document.getElementById('insightsClose').addEventListener('click', closeOverlay);
         return;
       }
-      // Helper: compute top descriptors from list of arrays
-      function topDescriptors(property, limit = 5) {
+      showInsightsList();
+    }
+
+    // Show list of grapes for insights
+    function showInsightsList() {
+      tastings = getTastings();
+      const grapeCounts = {};
+      tastings.forEach(t => {
+        if (!grapeCounts[t.grape]) grapeCounts[t.grape] = 0;
+        grapeCounts[t.grape]++;
+      });
+      const grapesList = Object.keys(grapeCounts).sort();
+      let listHtml = '';
+      grapesList.forEach(g => {
+        const count = grapeCounts[g];
+        listHtml += `<div class="library-item" data-grape="${g}">
+          <div class="library-grape">${g}</div>
+          <div class="library-count">${count} tasting${count !== 1 ? 's' : ''}</div>
+        </div>`;
+      });
+      const html = `
+        <div class="panel-header">
+          <div class="panel-title">Insights</div>
+          <div class="panel-close" id="insightsClose">✕</div>
+        </div>
+        <div class="panel-search">
+          <input type="text" id="insightsSearch" placeholder="Search grapes..." />
+        </div>
+        <div id="insightsList" class="panel-list">${listHtml || '<p class="empty">No tastings yet.</p>'}</div>
+      `;
+      showOverlay(html);
+      document.getElementById('insightsClose').addEventListener('click', closeOverlay);
+      const searchInput = document.getElementById('insightsSearch');
+      const listEl = document.getElementById('insightsList');
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.toLowerCase();
+        [...listEl.children].forEach(item => {
+          const g = item.getAttribute('data-grape').toLowerCase();
+          item.style.display = g.includes(q) ? '' : 'none';
+        });
+      });
+      listEl.addEventListener('click', (e) => {
+        const item = e.target.closest('.library-item');
+        if (!item) return;
+        const grape = item.getAttribute('data-grape');
+        showInsightDetail(grape);
+      });
+    }
+
+    // Show detailed palate map for a specific grape
+    function showInsightDetail(grape) {
+      // Filter tastings by grape
+      const tasts = getTastings().filter(t => t.grape === grape);
+      if (tasts.length === 0) {
+        showOverlay(`<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightDetailClose">✕</div></div><p class="empty">No data for ${grape}.</p>`);
+        document.getElementById('insightDetailClose').addEventListener('click', showInsightsList);
+        return;
+      }
+      // Helper to compute top descriptors for this grape
+      function topDescriptorsFor(list, limit=3) {
         const freq = {};
-        tastings.forEach(t => {
-          (t[property] || []).forEach(item => {
+        tasts.forEach(t => {
+          (t[list] || []).forEach(item => {
             const key = item.trim().toLowerCase();
             freq[key] = (freq[key] || 0) + 1 * (t.timesBought || 1);
           });
         });
         const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]);
-        return sorted.slice(0, limit).map(([k, v]) => {
-          // Capitalize each word
-          return k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        });
+        return sorted.slice(0, limit).map(([k,v]) => k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
       }
-      // Helper: most common categorical value, weighted by timesBought
-      function mostCommon(values) {
+      // Helper to get most common weighted category
+      function prefField(field) {
         const counts = {};
-        tastings.forEach(t => {
-          const val = t[values] || '';
+        tasts.forEach(t => {
+          const val = t[field] || '';
           const weight = t.timesBought || 1;
           if (val) counts[val] = (counts[val] || 0) + weight;
         });
         const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-        return entries.length > 0 ? entries[0][0] : '—';
+        return entries.length ? entries[0][0] : '—';
       }
-      // Compute palate map
-      const topSmell = topDescriptors('smell', 3);
-      const topTaste = topDescriptors('taste', 3);
-      // Structural preferences: sweetness and acidity
-      const prefSweetness = mostCommon('sweetness');
-      const prefAcidity = mostCommon('acidity');
-      // Favourite grapes: use existing topWeighted function logic but limit to 5
-      function topFavouriteGrapes() {
-        const agg = {};
-        tastings.forEach(t => {
-          const key = t.grape || '(Unknown)';
-          const weight = t.timesBought || 1;
-          const rating = parseFloat(t.grapeRating || 0);
-          if (!agg[key]) agg[key] = { sum: 0, weight: 0 };
-          agg[key].sum += rating * weight;
-          agg[key].weight += weight;
-        });
-        const scored = Object.entries(agg).map(([k,v]) => {
-          const avg = v.weight ? v.sum / v.weight : 0;
-          const freqWeight = 1 + Math.min(v.weight, 10) * 0.05;
-          const score = avg * freqWeight;
-          return { name: k, avg: avg, weight: v.weight, score };
-        });
-        scored.sort((a,b) => b.score - a.score);
-        return scored.slice(0,5).map(item => `${item.name} (${item.avg.toFixed(1)})`);
-      }
-      const favouriteGrapes = topFavouriteGrapes();
-      // Build HTML for insights
-      let html = `<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightsClose">✕</div></div>`;
-      // Palate map card
-      html += `<div class="stats-category-card"><div class="stats-card-title">Your Palate Map</div>`;
+      const topSmell = topDescriptorsFor('smell', 3);
+      const topTaste = topDescriptorsFor('taste', 3);
+      const prefSweetness = prefField('sweetness');
+      const prefAcidity = prefField('acidity');
+      // Build HTML
+      let html = `<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightDetailBack">← Back</div></div>`;
+      html += `<div class="stats-category-card"><div class="stats-card-title">Your palate map for ${grape}</div>`;
       html += `<div class="stat-row"><span class="stat-name">Top Aromas</span><span class="stat-value">${topSmell.join(', ') || '—'}</span></div>`;
       html += `<div class="stat-row"><span class="stat-name">Top Tastes</span><span class="stat-value">${topTaste.join(', ') || '—'}</span></div>`;
       html += `<div class="stat-row"><span class="stat-name">Preferred Sweetness</span><span class="stat-value">${prefSweetness}</span></div>`;
       html += `<div class="stat-row"><span class="stat-name">Preferred Acidity</span><span class="stat-value">${prefAcidity}</span></div>`;
-      html += `<div class="stat-row"><span class="stat-name">Favourite Grapes</span><span class="stat-value">${favouriteGrapes.join(', ') || '—'}</span></div>`;
       html += `</div>`;
       showOverlay(html);
-      document.getElementById('insightsClose').addEventListener('click', closeOverlay);
+      document.getElementById('insightDetailBack').addEventListener('click', showInsightsList);
     }
   </script>
   <!-- Service worker registration for PWA and persistent storage request -->
