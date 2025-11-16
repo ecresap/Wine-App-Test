@@ -490,6 +490,48 @@
       word-break: break-word;
     }
 
+    /* Categories for aroma/taste selection */
+    .category {
+      margin-bottom: 0.6rem;
+    }
+    .category-header {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      background: rgba(255,255,255,0.08);
+      border-radius: 0.6rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--wine-100);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s ease;
+    }
+    .category-header.open {
+      background: var(--wine-600);
+    }
+    .category-items {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.4rem;
+    }
+    .category-items.open {
+      display: flex;
+    }
+    .category-items .chip {
+      padding: 0.4rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .category-items .chip.selected {
+      background: var(--wine-500);
+    }
+
     /* Descriptor groups for smell/taste */
     .descriptor-group {
       display: inline-block;
@@ -670,12 +712,14 @@
         </div>
         <!-- Aromas & Flavors -->
         <div class="section">
-          <div class="section-title">Aromas (select up to 4)</div>
-          <div class="chip-container" id="smellChips"></div>
+          <div class="section-title">Aromas</div>
+          <!-- Category buttons for aromas will be populated via JS -->
+          <div id="aromaCategories"></div>
         </div>
         <div class="section">
-          <div class="section-title">Taste (select up to 4)</div>
-          <div class="chip-container" id="tasteChips"></div>
+          <div class="section-title">Taste</div>
+          <!-- Category buttons for taste will be populated via JS -->
+          <div id="tasteCategories"></div>
         </div>
         <div class="section">
           <div class="section-title">Colour</div>
@@ -802,13 +846,11 @@
       document.getElementById('colourType').value = p.colour || '';
       document.getElementById('colourIntensity').value = p.intensity || '';
       document.getElementById('notes').value = p.notes || '';
-      // Reset chips
-      document.querySelectorAll('#smellChips .chip').forEach(chip => {
-        chip.classList[p.smell && p.smell.includes(chip.textContent) ? 'add' : 'remove']('selected');
-      });
-      document.querySelectorAll('#tasteChips .chip').forEach(chip => {
-        chip.classList[p.taste && p.taste.includes(chip.textContent) ? 'add' : 'remove']('selected');
-      });
+      // Set selected aromas and taste from paused draft
+      selectedAromas = (p.smell || []).slice();
+      selectedTastes = (p.taste || []).slice();
+      setSelectionsForSection('aromaCategories', selectedAromas);
+      setSelectionsForSection('tasteCategories', selectedTastes);
       // Remove paused from storage
       localStorage.removeItem('winebuddy_paused');
       updatePausedUI();
@@ -983,6 +1025,46 @@
       'Smokey'
     ];
     const tasteOptions = [...smellOptions];
+
+    // Category lists for aromas and taste
+    const categories = [
+      {
+        name: 'Red Fruits',
+        items: ['Cranberry','Raspberry','Red Cherry','Strawberry','Red Plum']
+      },
+      {
+        name: 'Dark Fruits',
+        items: ['Blackcurrant','Black Plum','Blackberry','Black Cherry','Fig','Blueberry']
+      },
+      {
+        name: 'Citrus Fruits',
+        items: ['Lemon','Lime','Grapefruit','Lemon Zest','Orange','Orange Peel','Pineapple']
+      },
+      {
+        name: 'Other Fruits',
+        items: ['Apricot','Apple','Banana','Mango','Nectarine','Peach','Pear','Passion Fruit']
+      },
+      {
+        name: 'Earthy / Vegetal',
+        items: ['Bark','Forest Floor','Grass','Mint','Mushroom','Stone','Tobacco','Wet Leaves','Earthy']
+      },
+      {
+        name: 'Floral',
+        items: ['Acacia','Elderflower','Honeysuckle','Jasmine','Lavender','Rose','Violet']
+      },
+      {
+        name: 'Spices/Nuts',
+        items: ['Cinnamon','Clove','Nutmeg','Almond','Hazelnut','Nutty','Oregano']
+      },
+      {
+        name: 'Sweet / Other',
+        items: ['Butter','Caramel','Honey','Vanilla','Smokey','Leather']
+      }
+    ];
+
+    // Selected descriptors for aromas and taste
+    let selectedAromas = [];
+    let selectedTastes = [];
     // Populate grape and rating selects
     const grapeSelect = document.getElementById('grape');
     grapes.sort().forEach(g => {
@@ -999,6 +1081,74 @@
         opt.textContent = i;
         sel.appendChild(opt);
       }
+    }
+
+    // Create collapsible category lists for aromas and taste
+    function createCategoryLists(containerId, categoryList, selectedList) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      categoryList.forEach(cat => {
+        const catDiv = document.createElement('div');
+        catDiv.className = 'category';
+        // Header
+        const header = document.createElement('div');
+        header.className = 'category-header';
+        header.textContent = cat.name;
+        // Items container
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'category-items';
+        cat.items.forEach(item => {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = item;
+          // Mark selected if previously selected
+          if (selectedList.includes(item)) {
+            chip.classList.add('selected');
+          }
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (chip.classList.contains('selected')) {
+              chip.classList.remove('selected');
+              const idx = selectedList.indexOf(item);
+              if (idx >= 0) selectedList.splice(idx, 1);
+            } else {
+              if (selectedList.length < 4) {
+                chip.classList.add('selected');
+                selectedList.push(item);
+              }
+            }
+          });
+          itemsDiv.appendChild(chip);
+        });
+        catDiv.appendChild(header);
+        catDiv.appendChild(itemsDiv);
+        // Header click to toggle
+        header.addEventListener('click', () => {
+          const isOpen = header.classList.contains('open');
+          // Close all headers in this container
+          container.querySelectorAll('.category-header').forEach(h => h.classList.remove('open'));
+          container.querySelectorAll('.category-items').forEach(div => div.classList.remove('open'));
+          if (!isOpen) {
+            header.classList.add('open');
+            itemsDiv.classList.add('open');
+          }
+        });
+        container.appendChild(catDiv);
+      });
+    }
+
+    // Set selections for a section (used when editing or resuming)
+    function setSelectionsForSection(containerId, selectedList) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.querySelectorAll('.category-items .chip').forEach(chip => {
+        if (selectedList.includes(chip.textContent)) {
+          chip.classList.add('selected');
+        } else {
+          chip.classList.remove('selected');
+        }
+      });
     }
     populateRatingSelect('wineRating');
     populateRatingSelect('wineryRating');
@@ -1022,8 +1172,9 @@
         container.appendChild(chip);
       });
     }
-    createChips('smellChips', smellOptions);
-    createChips('tasteChips', tasteOptions);
+    // Build categories for aromas and taste selection
+    createCategoryLists('aromaCategories', categories, selectedAromas);
+    createCategoryLists('tasteCategories', categories, selectedTastes);
 
     // Example counters; replace these with actual data if storing tastings
     let tastings = getTastings();
@@ -1069,8 +1220,14 @@
       document.getElementById('colourType').selectedIndex = 0;
       document.getElementById('colourIntensity').selectedIndex = 0;
       document.getElementById('notes').value = '';
-      // Reset chips
-      document.querySelectorAll('.chip.selected').forEach(chip => chip.classList.remove('selected'));
+      // Reset selections for aromas and taste
+      selectedAromas = [];
+      selectedTastes = [];
+      // Remove selected class from all chips
+      document.querySelectorAll('.category-items .chip.selected').forEach(chip => chip.classList.remove('selected'));
+      // Collapse any open category lists
+      document.querySelectorAll('.category-header.open').forEach(h => h.classList.remove('open'));
+      document.querySelectorAll('.category-items.open').forEach(div => div.classList.remove('open'));
       // Reset editing state and save button label
       editIndex = null;
       const saveBtnReset = document.getElementById('saveBtn');
@@ -1089,8 +1246,8 @@
         grapeRating: document.getElementById('grapeRating').value,
         sweetness: document.getElementById('sweetness').value,
         acidity: document.getElementById('acidity').value,
-        smell: [...document.querySelectorAll('#smellChips .chip.selected')].map(ch => ch.textContent),
-        taste: [...document.querySelectorAll('#tasteChips .chip.selected')].map(ch => ch.textContent),
+        smell: selectedAromas.slice(),
+        taste: selectedTastes.slice(),
         colour: document.getElementById('colourType').value,
         intensity: document.getElementById('colourIntensity').value,
         notes: document.getElementById('notes').value.trim()
@@ -1141,8 +1298,8 @@
         grapeRating: document.getElementById('grapeRating').value,
         sweetness: document.getElementById('sweetness').value,
         acidity: document.getElementById('acidity').value,
-        smell: [...document.querySelectorAll('#smellChips .chip.selected')].map(ch => ch.textContent),
-        taste: [...document.querySelectorAll('#tasteChips .chip.selected')].map(ch => ch.textContent),
+        smell: selectedAromas.slice(),
+        taste: selectedTastes.slice(),
         colour: document.getElementById('colourType').value,
         intensity: document.getElementById('colourIntensity').value,
         notes: document.getElementById('notes').value.trim(),
@@ -1403,6 +1560,8 @@
             showLibrary();
           } else if (action === 'edit') {
             editTasting(idx);
+            // Close overlay so form appears as primary window
+            closeOverlay();
           }
         });
       });
@@ -1423,13 +1582,11 @@
       document.getElementById('colourType').value = t.colour || '';
       document.getElementById('colourIntensity').value = t.intensity || '';
       document.getElementById('notes').value = t.notes || '';
-      // Reset chips
-      document.querySelectorAll('#smellChips .chip').forEach(chip => {
-        chip.classList[t.smell.includes(chip.textContent) ? 'add' : 'remove']('selected');
-      });
-      document.querySelectorAll('#tasteChips .chip').forEach(chip => {
-        chip.classList[t.taste.includes(chip.textContent) ? 'add' : 'remove']('selected');
-      });
+      // Set selections for aromas and taste
+      selectedAromas = (t.smell || []).slice();
+      selectedTastes = (t.taste || []).slice();
+      setSelectionsForSection('aromaCategories', selectedAromas);
+      setSelectionsForSection('tasteCategories', selectedTastes);
       // Show form
       newTastingSection.style.display = 'block';
       window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
