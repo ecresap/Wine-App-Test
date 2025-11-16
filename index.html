@@ -532,6 +532,58 @@
       background: var(--wine-500);
     }
 
+    /* Custom colour dropdown with swatch rectangles */
+    .custom-dropdown {
+      position: relative;
+      width: 100%;
+    }
+    .custom-selected {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 0.6rem;
+      background: #150910;
+      color: var(--wine-100);
+      box-shadow: inset 0 0 0 1px #4a0915;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .custom-selected .color-swatch {
+      width: 2.4rem;
+      height: 1.4rem;
+      border-radius: 0.3rem;
+    }
+    .custom-options {
+      position: absolute;
+      top: calc(100% + 0.3rem);
+      left: 0;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      background: linear-gradient(160deg, var(--wine-800), var(--wine-600));
+      border-radius: 0.6rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.6);
+      z-index: 400;
+    }
+    .custom-option {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .custom-option:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .custom-option .color-swatch {
+      width: 2.4rem;
+      height: 1.4rem;
+      border-radius: 0.3rem;
+    }
+
     /* Descriptor groups for smell/taste */
     .descriptor-group {
       display: inline-block;
@@ -724,21 +776,15 @@
         <div class="section">
           <div class="section-title">Colour</div>
           <div class="field">
-            <label for="colourType">Colour Type</label>
-            <select id="colourType">
+            <label>Colour Type</label>
+            <!-- Custom dropdown with color rectangles -->
+            <div class="custom-dropdown" id="colourTypeDropdown">
+              <div class="custom-selected" id="colourTypeSelected">-- Select --</div>
+              <div class="custom-options" id="colourTypeOptions" style="display:none;"></div>
+            </div>
+            <!-- Hidden select to store the value -->
+            <select id="colourType" style="display:none">
               <option value="">-- Select --</option>
-              <option value="Ruby">Ruby</option>
-              <option value="Garnet">Garnet</option>
-              <option value="Purple">Purple</option>
-              <option value="Tawny">Tawny</option>
-              <option value="Lemon-Green">Lemon-Green</option>
-              <option value="Lemon">Lemon</option>
-              <option value="Gold">Gold</option>
-              <option value="Amber">Amber</option>
-              <option value="Pink">Pink</option>
-              <option value="Salmon">Salmon</option>
-              <option value="Copper">Copper</option>
-              <option value="Mahogany">Mahogany</option>
             </select>
           </div>
           <div class="field">
@@ -843,7 +889,8 @@
       document.getElementById('grapeRating').value = p.grapeRating || '';
       document.getElementById('sweetness').value = p.sweetness || '';
       document.getElementById('acidity').value = p.acidity || '';
-      document.getElementById('colourType').value = p.colour || '';
+      // Set colour using custom dropdown helper
+      setColourSelection(p.colour || '');
       document.getElementById('colourIntensity').value = p.intensity || '';
       document.getElementById('notes').value = p.notes || '';
       // Set selected aromas and taste from paused draft
@@ -1026,6 +1073,22 @@
     ];
     const tasteOptions = [...smellOptions];
 
+    // Colour options in order from darkest to lightest with approximate hex values for wine colours
+    const colourOptions = [
+      { value: 'Mahogany', label: 'Mahogany', color: '#4b2e22' },
+      { value: 'Tawny', label: 'Tawny', color: '#7a432b' },
+      { value: 'Garnet', label: 'Garnet', color: '#7b1f2e' },
+      { value: 'Ruby', label: 'Ruby', color: '#8d0a23' },
+      { value: 'Purple', label: 'Purple', color: '#571b49' },
+      { value: 'Copper', label: 'Copper', color: '#b87333' },
+      { value: 'Amber', label: 'Amber', color: '#bf7300' },
+      { value: 'Gold', label: 'Gold', color: '#d5a300' },
+      { value: 'Salmon', label: 'Salmon', color: '#d1697a' },
+      { value: 'Pink', label: 'Pink', color: '#e89cb8' },
+      { value: 'Lemon', label: 'Lemon', color: '#f2d94e' },
+      { value: 'Lemon-Green', label: 'Lemon-Green', color: '#c4e538' }
+    ];
+
     // Category lists for aromas and taste
     const categories = [
       {
@@ -1176,6 +1239,68 @@
     createCategoryLists('aromaCategories', categories, selectedAromas);
     createCategoryLists('tasteCategories', categories, selectedTastes);
 
+    // Initialise custom colour dropdown
+    function initColourDropdown() {
+      const dropdown = document.getElementById('colourTypeDropdown');
+      const selectedEl = document.getElementById('colourTypeSelected');
+      const optionsEl = document.getElementById('colourTypeOptions');
+      const hiddenSelect = document.getElementById('colourType');
+      if (!dropdown || !selectedEl || !optionsEl || !hiddenSelect) return;
+      // Build options list
+      optionsEl.innerHTML = '';
+      colourOptions.forEach(opt => {
+        const optDiv = document.createElement('div');
+        optDiv.className = 'custom-option';
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.background = opt.color;
+        const label = document.createElement('span');
+        label.textContent = opt.label;
+        optDiv.appendChild(swatch);
+        optDiv.appendChild(label);
+        optDiv.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setColourSelection(opt.value);
+          optionsEl.style.display = 'none';
+        });
+        optionsEl.appendChild(optDiv);
+      });
+      // Populate hidden select
+      hiddenSelect.innerHTML = '<option value="">-- Select --</option>';
+      colourOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        hiddenSelect.appendChild(option);
+      });
+      // Toggle dropdown on click
+      selectedEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        optionsEl.style.display = optionsEl.style.display === 'block' ? 'none' : 'block';
+      });
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+          optionsEl.style.display = 'none';
+        }
+      });
+      // Initialise selected display to placeholder
+      setColourSelection(hiddenSelect.value);
+    }
+    // Set selected colour programmatically
+    function setColourSelection(value) {
+      const hiddenSelect = document.getElementById('colourType');
+      const selectedEl = document.getElementById('colourTypeSelected');
+      hiddenSelect.value = value || '';
+      // Find matching option
+      const opt = colourOptions.find(o => o.value === value);
+      if (opt) {
+        selectedEl.innerHTML = `<div class="color-swatch" style="background:${opt.color}"></div><span>${opt.label}</span>`;
+      } else {
+        selectedEl.innerHTML = '-- Select --';
+      }
+    }
+
     // Example counters; replace these with actual data if storing tastings
     let tastings = getTastings();
     function updateStats() {
@@ -1218,6 +1343,8 @@
       document.getElementById('sweetness').selectedIndex = 0;
       document.getElementById('acidity').selectedIndex = 0;
       document.getElementById('colourType').selectedIndex = 0;
+      // Reset custom colour selection display
+      setColourSelection('');
       document.getElementById('colourIntensity').selectedIndex = 0;
       document.getElementById('notes').value = '';
       // Reset selections for aromas and taste
@@ -1320,6 +1447,8 @@
     updateStats();
     // Initialize paused tasting UI
     updatePausedUI();
+    // Initialize custom colour dropdown
+    initColourDropdown();
 
     /* ------------------------------ Library & Stats Overlay ------------------------------ */
     const overlay = document.getElementById('overlay');
@@ -1579,7 +1708,8 @@
       document.getElementById('grapeRating').value = t.grapeRating || '';
       document.getElementById('sweetness').value = t.sweetness || '';
       document.getElementById('acidity').value = t.acidity || '';
-      document.getElementById('colourType').value = t.colour || '';
+      // Set colour using custom dropdown helper
+      setColourSelection(t.colour || '');
       document.getElementById('colourIntensity').value = t.intensity || '';
       document.getElementById('notes').value = t.notes || '';
       // Set selections for aromas and taste
