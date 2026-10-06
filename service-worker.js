@@ -1,8 +1,5 @@
-const CACHE_NAME = 'winebuddy-cache-v1';
+const CACHE_NAME = 'winebuddy-cache-v2';
 
-// List of core files to cache for offline support.  Paths are relative to the
-// service worker location (`/Wine-App-Test/`).  Adjust this list whenever
-// adding new entry points or critical assets.
 const CORE_ASSETS = [
   '.',
   'index.html',
@@ -11,59 +8,63 @@ const CORE_ASSETS = [
   'localStorage.js'
 ];
 
-// On install, pre-cache the core assets so the app can start offline.
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(CORE_ASSETS);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
   );
 });
 
-// On activate, remove old caches.
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-      );
-    })
+    Promise.all([
+      caches.keys().then(cacheNames =>
+        Promise.all(cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name)))
+      ),
+      self.clients.claim()
+    ])
   );
 });
 
-// Helper to determine if a request is HTML by checking the Accept header.
-function isHtmlRequest(request) {
+function isAppCodeRequest(request) {
+  const url = new URL(request.url);
   const accept = request.headers.get('accept') || '';
-  return accept.includes('text/html');
+  return accept.includes('text/html') ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/localStorage.js') ||
+    url.pathname.endsWith('/manifest.json');
 }
 
-// Fetch handler: network-first for HTML; cache-first for other assets.
 self.addEventListener('fetch', event => {
-  // Only handle GET requests for same-origin resources
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) {
     return;
   }
+
   const request = event.request;
-  if (isHtmlRequest(request)) {
-    // For HTML, try network first to get the latest; fall back to cache
+
+  // Network-first for app code so deployments do not remain pinned to an old
+  // cached build. This never touches localStorage, where tasting data lives.
+  if (isAppCodeRequest(request)) {
     event.respondWith(
-      fetch(request).then(response => {
-        const respClone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
-        return response;
-      }).catch(() => caches.match(request))
-    );
-  } else {
-    // For other resources, try cache first, then network
-    event.respondWith(
-      caches.match(request).then(cached => {
-        return cached || fetch(request).then(response => {
-          // Cache the fetched response for future offline use
-          const respClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
+      fetch(request, { cache: 'no-cache' })
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
           return response;
-        });
-      })
+        })
+        .catch(() => caches.match(request))
     );
+    return;
   }
+
+  // Cache-first remains appropriate for static visual assets.
+  event.respondWith(
+    caches.match(request).then(cached =>
+      cached || fetch(request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        return response;
+      })
+    )
+  );
 });
