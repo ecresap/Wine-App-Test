@@ -584,7 +584,80 @@
       border-radius: 0.3rem;
     }
 
-    /* Descriptor groups for smell/taste */
+    /* Searchable grape and descriptor pickers */
+    .picker-wrap { position: relative; }
+    .picker-results {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 0.25rem);
+      z-index: 450;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #150910;
+      border: 1px solid #4a0915;
+      border-radius: 0.6rem;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.55);
+    }
+    .picker-result {
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .picker-result:hover { background: rgba(255,255,255,0.08); }
+    .blend-list { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.65rem; }
+    .blend-row {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 92px 34px;
+      gap: 0.45rem;
+      align-items: center;
+      background: rgba(255,255,255,0.06);
+      padding: 0.55rem;
+      border-radius: 0.65rem;
+    }
+    .blend-name { font-size: 0.86rem; font-weight: 500; line-height: 1.25; }
+    .blend-pct { position: relative; }
+    .blend-pct input { padding-right: 1.6rem; text-align: right; }
+    .blend-pct::after {
+      content: '%';
+      position: absolute;
+      right: 0.55rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--wine-200);
+      font-size: 0.78rem;
+      pointer-events: none;
+    }
+    .blend-remove {
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: var(--wine-100);
+      border-radius: 0.45rem;
+      min-height: 34px;
+      cursor: pointer;
+    }
+    .blend-summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-top: 0.45rem;
+      font-size: 0.74rem;
+      color: var(--wine-200);
+    }
+    .blend-summary.warning { color: #ffd0a8; }
+    .descriptor-search { margin-bottom: 0.65rem; }
+    .selected-descriptors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.5rem 0 0.7rem;
+      min-height: 0.25rem;
+    }
+    .selected-descriptors .chip { background: var(--wine-500); }
+    .descriptor-empty { font-size: 0.76rem; color: var(--wine-200); }
+    .category-items .chip.hidden-chip { display: none; }
     .descriptor-group {
       display: inline-block;
       margin-right: 0.4rem;
@@ -729,9 +802,21 @@
             <input type="number" id="vintage" placeholder="e.g., 2021" />
           </div>
           <div class="field">
-            <label for="grape">Grape Variety</label>
-            <select id="grape">
-              <!-- Grape options will be populated by script -->
+            <label for="grapeSearch">Grapes / Blend</label>
+            <div class="picker-wrap">
+              <input type="text" id="grapeSearch" placeholder="Search and add a grape..." autocomplete="off" />
+              <div id="grapeSearchResults" class="picker-results"></div>
+            </div>
+            <div id="blendRows" class="blend-list"></div>
+            <div id="blendSummary" class="blend-summary">
+              <span id="blendTotal">Percentages optional</span>
+              <span id="blendStatus">Add one or more grapes</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="wineRating">Wine Rating (1–10) <span style="font-size:0.75rem;color:var(--wine-200);">(Optional)</span></label>
+            <select id="wineRating">
+              <option value="">-- Select --</option>
             </select>
           </div>
         </div>
@@ -765,12 +850,18 @@
         <!-- Aromas & Flavors -->
         <div class="section">
           <div class="section-title">Aromas</div>
-          <!-- Category buttons for aromas will be populated via JS -->
+          <div class="descriptor-search">
+            <input type="search" id="aromaSearch" placeholder="Search aromas..." autocomplete="off" />
+          </div>
+          <div id="selectedAromas" class="selected-descriptors"></div>
           <div id="aromaCategories"></div>
         </div>
         <div class="section">
           <div class="section-title">Taste</div>
-          <!-- Category buttons for taste will be populated via JS -->
+          <div class="descriptor-search">
+            <input type="search" id="tasteSearch" placeholder="Search tastes..." autocomplete="off" />
+          </div>
+          <div id="selectedTastes" class="selected-descriptors"></div>
           <div id="tasteCategories"></div>
         </div>
         <div class="section">
@@ -799,21 +890,16 @@
         </div>
         <!-- Ratings (moved below Colour to just above Additional notes) -->
         <div class="section">
-          <div class="section-title">Ratings <span style="font-size:0.75rem; font-weight:400; color: var(--wine-200);">(Optional)</span></div>
-          <div class="field">
-            <label for="wineRating">Wine Rating (1–10)</label>
-            <select id="wineRating">
-              <option value="">-- Select --</option>
-            </select>
-          </div>
+          <div class="section-title">Optional Impressions</div>
           <div class="field">
             <label for="wineryRating">Winery Rating (1–10)</label>
             <select id="wineryRating">
               <option value="">-- Select --</option>
             </select>
           </div>
-          <div class="field">
-            <label for="grapeRating">Grape Rating (1–10)</label>
+          <div class="field" id="grapeRatingField">
+            <label for="grapeRating">Variety Impression (1–10)</label>
+            <div style="font-size:0.72rem;color:var(--wine-200);margin:-0.15rem 0 0.35rem;">Shown for single-varietal wines only.</div>
             <select id="grapeRating">
               <option value="">-- Select --</option>
             </select>
@@ -883,7 +969,9 @@
       document.getElementById('vineyard').value = p.vineyard || '';
       document.getElementById('wineName').value = p.wineName || '';
       document.getElementById('vintage').value = p.vintage || '';
-      document.getElementById('grape').value = p.grape || '';
+      selectedGrapes = getGrapeComponents(p).map(g => ({ name: g.name, percentage: g.percentage }));
+      document.getElementById('grapeSearch').value = '';
+      renderBlendRows();
       document.getElementById('wineRating').value = p.wineRating || '';
       document.getElementById('wineryRating').value = p.wineryRating || '';
       document.getElementById('grapeRating').value = p.grapeRating || '';
@@ -898,6 +986,8 @@
       selectedTastes = (p.taste || []).slice();
       setSelectionsForSection('aromaCategories', selectedAromas);
       setSelectionsForSection('tasteCategories', selectedTastes);
+      renderSelectedDescriptors('aroma');
+      renderSelectedDescriptors('taste');
       // Remove paused from storage
       localStorage.removeItem('winebuddy_paused');
       updatePausedUI();
@@ -1071,7 +1161,12 @@
       'Vanilla',
       'Violet',
       'Wet Leaves',
-      'Smokey'
+      'Smoky',
+      'Fig',
+      'Blueberry',
+      'Oregano',
+      'Allspice',
+      'Five Spice'
     ];
     const tasteOptions = [...smellOptions];
 
@@ -1119,25 +1214,52 @@
       },
       {
         name: 'Spices/Nuts',
-        items: ['Cinnamon','Clove','Nutmeg','Almond','Hazelnut','Nutty','Oregano','All Spice','5 Spice']
+        items: ['Cinnamon','Clove','Nutmeg','Almond','Hazelnut','Nutty','Oregano','Allspice','Five Spice']
       },
       {
         name: 'Sweet / Other',
-        items: ['Butter','Caramel','Honey','Vanilla','Smokey','Leather']
+        items: ['Butter','Caramel','Honey','Vanilla','Smoky','Leather']
       }
     ];
 
-    // Selected descriptors for aromas and taste
+    // Selected grapes and descriptors
+    let selectedGrapes = [];
     let selectedAromas = [];
     let selectedTastes = [];
-    // Populate grape and rating selects
-    const grapeSelect = document.getElementById('grape');
-    grapes.sort().forEach(g => {
-      const opt = document.createElement('option');
-      opt.value = g;
-      opt.textContent = g;
-      grapeSelect.appendChild(opt);
-    });
+
+    function getGrapeComponents(tasting) {
+      if (Array.isArray(tasting.grapes) && tasting.grapes.length) {
+        return tasting.grapes
+          .filter(g => g && g.name)
+          .map(g => ({ name: g.name, percentage: g.percentage === '' || g.percentage == null ? null : Number(g.percentage) }));
+      }
+      return tasting.grape ? [{ name: tasting.grape, percentage: null }] : [];
+    }
+
+    function legacyGrapeLabel(list) {
+      if (!list.length) return '';
+      return list.length === 1 ? list[0].name : 'Blend';
+    }
+
+    function blendDisplay(tasting) {
+      const parts = getGrapeComponents(tasting);
+      if (!parts.length) return '—';
+      return parts.map(g => g.name + (g.percentage != null ? ' ' + g.percentage + '%' : '')).join(' / ');
+    }
+
+    function tastingHasGrape(tasting, grapeName) {
+      return getGrapeComponents(tasting).some(g => g.name === grapeName);
+    }
+
+    function grapeShare(tasting, grapeName) {
+      const parts = getGrapeComponents(tasting);
+      const match = parts.find(g => g.name === grapeName);
+      if (!match) return 0;
+      const known = parts.filter(g => Number.isFinite(g.percentage));
+      if (known.length === parts.length) return Math.max(0, match.percentage) / 100;
+      return 1 / Math.max(parts.length, 1);
+    }
+
     function populateRatingSelect(id) {
       const sel = document.getElementById(id);
       for (let i=1; i<=10; i++) {
@@ -1148,50 +1270,161 @@
       }
     }
 
-    // Create collapsible category lists for aromas and taste
-    function createCategoryLists(containerId, categoryList, selectedList) {
+    function renderBlendRows() {
+      const rows = document.getElementById('blendRows');
+      rows.innerHTML = '';
+      selectedGrapes.forEach((g, index) => {
+        const row = document.createElement('div');
+        row.className = 'blend-row';
+        row.innerHTML = '<div class="blend-name"></div><div class="blend-pct"><input type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="%" aria-label="Blend percentage"></div><button class="blend-remove" type="button" aria-label="Remove grape">×</button>';
+        row.querySelector('.blend-name').textContent = g.name;
+        const pctInput = row.querySelector('input');
+        pctInput.value = g.percentage == null ? '' : g.percentage;
+        pctInput.addEventListener('input', () => {
+          const raw = pctInput.value;
+          g.percentage = raw === '' ? null : Math.max(0, Math.min(100, Number(raw)));
+          renderBlendSummary();
+        });
+        row.querySelector('.blend-remove').addEventListener('click', () => {
+          selectedGrapes.splice(index, 1);
+          renderBlendRows();
+        });
+        rows.appendChild(row);
+      });
+      renderBlendSummary();
+      const grapeRatingField = document.getElementById('grapeRatingField');
+      if (grapeRatingField) grapeRatingField.style.display = selectedGrapes.length === 1 ? '' : 'none';
+      if (selectedGrapes.length !== 1) document.getElementById('grapeRating').value = '';
+    }
+
+    function renderBlendSummary() {
+      const totalEl = document.getElementById('blendTotal');
+      const statusEl = document.getElementById('blendStatus');
+      const summary = document.getElementById('blendSummary');
+      const entered = selectedGrapes.filter(g => Number.isFinite(g.percentage));
+      const total = entered.reduce((sum, g) => sum + Number(g.percentage || 0), 0);
+      summary.classList.remove('warning');
+      if (!selectedGrapes.length) {
+        totalEl.textContent = 'Percentages optional';
+        statusEl.textContent = 'Add one or more grapes';
+      } else if (!entered.length) {
+        totalEl.textContent = 'Percentages optional';
+        statusEl.textContent = selectedGrapes.length === 1 ? 'Single varietal' : selectedGrapes.length + '-grape blend';
+      } else {
+        totalEl.textContent = total + '% entered';
+        const complete = entered.length === selectedGrapes.length;
+        if (total > 100 || (complete && selectedGrapes.length > 1 && total !== 100)) {
+          summary.classList.add('warning');
+          statusEl.textContent = total > 100 ? 'Total cannot exceed 100%' : 'Complete blend should total 100%';
+        } else if (!complete) {
+          statusEl.textContent = 'Partial percentages are OK';
+        } else {
+          statusEl.textContent = 'Blend totals 100%';
+        }
+      }
+    }
+
+    function blendPercentagesValid() {
+      const entered = selectedGrapes.filter(g => Number.isFinite(g.percentage));
+      const total = entered.reduce((sum, g) => sum + Number(g.percentage || 0), 0);
+      if (total > 100) return false;
+      return !(selectedGrapes.length > 1 && entered.length === selectedGrapes.length && total !== 100);
+    }
+
+    function setupGrapeSearch() {
+      const input = document.getElementById('grapeSearch');
+      const results = document.getElementById('grapeSearchResults');
+      function closeResults() { results.style.display = 'none'; }
+      function renderResults() {
+        const q = input.value.trim().toLowerCase();
+        const matches = grapes
+          .filter(g => !selectedGrapes.some(sel => sel.name === g))
+          .filter(g => !q || g.toLowerCase().includes(q))
+          .slice(0, 12);
+        results.innerHTML = '';
+        matches.forEach(name => {
+          const item = document.createElement('div');
+          item.className = 'picker-result';
+          item.textContent = name;
+          item.addEventListener('click', () => {
+            selectedGrapes.push({ name, percentage: null });
+            input.value = '';
+            closeResults();
+            renderBlendRows();
+          });
+          results.appendChild(item);
+        });
+        results.style.display = matches.length ? 'block' : 'none';
+      }
+      input.addEventListener('focus', renderResults);
+      input.addEventListener('input', renderResults);
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.picker-wrap')) closeResults();
+      });
+    }
+
+    function renderSelectedDescriptors(kind) {
+      const selectedList = kind === 'aroma' ? selectedAromas : selectedTastes;
+      const target = document.getElementById(kind === 'aroma' ? 'selectedAromas' : 'selectedTastes');
+      const containerId = kind === 'aroma' ? 'aromaCategories' : 'tasteCategories';
+      target.innerHTML = '';
+      if (!selectedList.length) {
+        const empty = document.createElement('span');
+        empty.className = 'descriptor-empty';
+        empty.textContent = 'No descriptors selected yet.';
+        target.appendChild(empty);
+        return;
+      }
+      selectedList.forEach(item => {
+        const chip = document.createElement('span');
+        chip.className = 'chip selected';
+        chip.textContent = item + ' ×';
+        chip.title = 'Remove ' + item;
+        chip.addEventListener('click', () => {
+          const idx = selectedList.indexOf(item);
+          if (idx >= 0) selectedList.splice(idx, 1);
+          setSelectionsForSection(containerId, selectedList);
+          renderSelectedDescriptors(kind);
+        });
+        target.appendChild(chip);
+      });
+    }
+
+    function createCategoryLists(containerId, categoryList, selectedList, kind) {
       const container = document.getElementById(containerId);
       if (!container) return;
       container.innerHTML = '';
       categoryList.forEach(cat => {
         const catDiv = document.createElement('div');
         catDiv.className = 'category';
-        // Header
         const header = document.createElement('div');
         header.className = 'category-header';
         header.textContent = cat.name;
-        // Items container
         const itemsDiv = document.createElement('div');
         itemsDiv.className = 'category-items';
         cat.items.forEach(item => {
           const chip = document.createElement('span');
           chip.className = 'chip';
           chip.textContent = item;
-          // Mark selected if previously selected
-          if (selectedList.includes(item)) {
-            chip.classList.add('selected');
-          }
-          chip.addEventListener('click', (e) => {
+          if (selectedList.includes(item)) chip.classList.add('selected');
+          chip.addEventListener('click', e => {
             e.stopPropagation();
             if (chip.classList.contains('selected')) {
               chip.classList.remove('selected');
               const idx = selectedList.indexOf(item);
               if (idx >= 0) selectedList.splice(idx, 1);
             } else {
-              if (selectedList.length < 4) {
-                chip.classList.add('selected');
-                selectedList.push(item);
-              }
+              chip.classList.add('selected');
+              selectedList.push(item);
             }
+            renderSelectedDescriptors(kind);
           });
           itemsDiv.appendChild(chip);
         });
         catDiv.appendChild(header);
         catDiv.appendChild(itemsDiv);
-        // Header click to toggle
         header.addEventListener('click', () => {
           const isOpen = header.classList.contains('open');
-          // Close all headers in this container
           container.querySelectorAll('.category-header').forEach(h => h.classList.remove('open'));
           container.querySelectorAll('.category-items').forEach(div => div.classList.remove('open'));
           if (!isOpen) {
@@ -1203,43 +1436,52 @@
       });
     }
 
-    // Set selections for a section (used when editing or resuming)
     function setSelectionsForSection(containerId, selectedList) {
       const container = document.getElementById(containerId);
       if (!container) return;
       container.querySelectorAll('.category-items .chip').forEach(chip => {
-        if (selectedList.includes(chip.textContent)) {
-          chip.classList.add('selected');
-        } else {
-          chip.classList.remove('selected');
-        }
+        chip.classList.toggle('selected', selectedList.includes(chip.textContent));
       });
     }
+
+    function setupDescriptorSearch(kind) {
+      const input = document.getElementById(kind === 'aroma' ? 'aromaSearch' : 'tasteSearch');
+      const container = document.getElementById(kind === 'aroma' ? 'aromaCategories' : 'tasteCategories');
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        container.querySelectorAll('.category').forEach(category => {
+          const chips = [...category.querySelectorAll('.chip')];
+          let visible = 0;
+          chips.forEach(chip => {
+            const match = !q || chip.textContent.toLowerCase().includes(q);
+            chip.classList.toggle('hidden-chip', !match);
+            if (match) visible++;
+          });
+          category.style.display = visible ? '' : 'none';
+          const header = category.querySelector('.category-header');
+          const items = category.querySelector('.category-items');
+          if (q && visible) {
+            header.classList.add('open');
+            items.classList.add('open');
+          } else if (!q) {
+            header.classList.remove('open');
+            items.classList.remove('open');
+          }
+        });
+      });
+    }
+
     populateRatingSelect('wineRating');
     populateRatingSelect('wineryRating');
     populateRatingSelect('grapeRating');
-    // Populate smell and taste chips
-    function createChips(containerId, options) {
-      const container = document.getElementById(containerId);
-      options.sort().forEach(item => {
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.textContent = item;
-        chip.addEventListener('click', () => {
-          // Toggle selection; limit to 4 chips
-          const selected = [...container.querySelectorAll('.chip.selected')];
-          if (chip.classList.contains('selected')) {
-            chip.classList.remove('selected');
-          } else if (selected.length < 4) {
-            chip.classList.add('selected');
-          }
-        });
-        container.appendChild(chip);
-      });
-    }
-    // Build categories for aromas and taste selection
-    createCategoryLists('aromaCategories', categories, selectedAromas);
-    createCategoryLists('tasteCategories', categories, selectedTastes);
+    createCategoryLists('aromaCategories', categories, selectedAromas, 'aroma');
+    createCategoryLists('tasteCategories', categories, selectedTastes, 'taste');
+    renderSelectedDescriptors('aroma');
+    renderSelectedDescriptors('taste');
+    setupDescriptorSearch('aroma');
+    setupDescriptorSearch('taste');
+    setupGrapeSearch();
+    renderBlendRows();
 
     // Initialise custom colour dropdown
     function initColourDropdown() {
@@ -1309,7 +1551,7 @@
       // Refresh tastings from localStorage each time stats are updated
       tastings = getTastings();
       const tastingCount = tastings.length;
-      const grapeCount = new Set(tastings.map(t => t.grape)).size;
+      const grapeCount = new Set(tastings.flatMap(t => getGrapeComponents(t).map(g => g.name))).size;
       animateNumber('tastingCount', tastingCount);
       animateNumber('grapeCount', grapeCount);
     }
@@ -1338,7 +1580,9 @@
       document.getElementById('vineyard').value = '';
       document.getElementById('wineName').value = '';
       document.getElementById('vintage').value = '';
-      document.getElementById('grape').selectedIndex = 0;
+      selectedGrapes = [];
+      document.getElementById('grapeSearch').value = '';
+      renderBlendRows();
       document.getElementById('wineRating').selectedIndex = 0;
       document.getElementById('wineryRating').selectedIndex = 0;
       document.getElementById('grapeRating').selectedIndex = 0;
@@ -1352,6 +1596,10 @@
       // Reset selections for aromas and taste
       selectedAromas = [];
       selectedTastes = [];
+      renderSelectedDescriptors('aroma');
+      renderSelectedDescriptors('taste');
+      document.getElementById('aromaSearch').value = '';
+      document.getElementById('tasteSearch').value = '';
       // Remove selected class from all chips
       document.querySelectorAll('.category-items .chip.selected').forEach(chip => chip.classList.remove('selected'));
       // Collapse any open category lists
@@ -1369,7 +1617,8 @@
         vineyard: document.getElementById('vineyard').value.trim(),
         wineName: document.getElementById('wineName').value.trim(),
         vintage: document.getElementById('vintage').value.trim(),
-        grape: document.getElementById('grape').value,
+        grapes: selectedGrapes.map(g => ({ name: g.name, percentage: g.percentage == null ? null : Number(g.percentage) })),
+        grape: legacyGrapeLabel(selectedGrapes),
         wineRating: document.getElementById('wineRating').value,
         wineryRating: document.getElementById('wineryRating').value,
         grapeRating: document.getElementById('grapeRating').value,
@@ -1381,6 +1630,20 @@
         intensity: document.getElementById('colourIntensity').value,
         notes: document.getElementById('notes').value.trim()
       };
+      if (!selectedGrapes.length) {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Add at least one grape.';
+        toast.style.opacity = 1;
+        setTimeout(() => toast.style.opacity = 0, 2200);
+        return;
+      }
+      if (!blendPercentagesValid()) {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Check blend percentages before saving.';
+        toast.style.opacity = 1;
+        setTimeout(() => toast.style.opacity = 0, 2400);
+        return;
+      }
       // If editing existing tasting
       if (editIndex !== null && editIndex >= 0 && editIndex < tastings.length) {
         const existing = tastings[editIndex];
@@ -1421,7 +1684,8 @@
         vineyard: document.getElementById('vineyard').value.trim(),
         wineName: document.getElementById('wineName').value.trim(),
         vintage: document.getElementById('vintage').value.trim(),
-        grape: document.getElementById('grape').value,
+        grapes: selectedGrapes.map(g => ({ name: g.name, percentage: g.percentage == null ? null : Number(g.percentage) })),
+        grape: legacyGrapeLabel(selectedGrapes),
         wineRating: document.getElementById('wineRating').value,
         wineryRating: document.getElementById('wineryRating').value,
         grapeRating: document.getElementById('grapeRating').value,
@@ -1491,9 +1755,9 @@
       tastings = getTastings();
       // Create search and list of grapes
       const grapeCounts = {};
-      tastings.forEach((t, idx) => {
-        if (!grapeCounts[t.grape]) grapeCounts[t.grape] = 0;
-        grapeCounts[t.grape]++;
+      tastings.forEach(t => {
+        const unique = new Set(getGrapeComponents(t).map(g => g.name));
+        unique.forEach(name => { grapeCounts[name] = (grapeCounts[name] || 0) + 1; });
       });
       const grapesList = Object.keys(grapeCounts).sort();
       let listHtml = '';
@@ -1506,11 +1770,11 @@
       });
       const html = `
         <div class="panel-header">
-          <div class="panel-title">Tasting Library</div>
+          <div class="panel-title">Tasting Library · Grapes</div>
           <div class="panel-close" id="libraryClose">✕</div>
         </div>
         <div class="panel-search">
-          <input type="text" id="librarySearch" placeholder="Search grapes..." />
+          <input type="text" id="librarySearch" placeholder="Search grapes or blend components..." />
         </div>
         <div id="libraryList" class="panel-list">${listHtml || '<p class="empty">No tastings yet.</p>'}</div>
       `;
@@ -1540,7 +1804,7 @@
       tastings = getTastings();
       // Filter tastings by grape
       const tasts = tastings.map((t, idx) => ({ ...t, index: idx }))
-        .filter(t => t.grape === grape);
+        .filter(t => tastingHasGrape(t, grape));
       // Compute common notes if count >= 3
       let commonHtml = '';
       if (tasts.length >= 3) {
@@ -1610,6 +1874,10 @@
             <div class="entry-row">
               <div class="entry-label">Wine:</div>
               <div class="entry-value">${t.wineName || '—'}${t.vintage ? ' (' + t.vintage + ')' : ''}</div>
+            </div>
+            <div class="entry-row">
+              <div class="entry-label">Grapes:</div>
+              <div class="entry-value">${blendDisplay(t)}</div>
             </div>
             <div class="entry-row">
               <div class="entry-label">Profile:</div>
@@ -1704,7 +1972,9 @@
       document.getElementById('vineyard').value = t.vineyard || '';
       document.getElementById('wineName').value = t.wineName || '';
       document.getElementById('vintage').value = t.vintage || '';
-      document.getElementById('grape').value = t.grape || '';
+      selectedGrapes = getGrapeComponents(t).map(g => ({ name: g.name, percentage: g.percentage }));
+      document.getElementById('grapeSearch').value = '';
+      renderBlendRows();
       document.getElementById('wineRating').value = t.wineRating || '';
       document.getElementById('wineryRating').value = t.wineryRating || '';
       document.getElementById('grapeRating').value = t.grapeRating || '';
@@ -1719,6 +1989,8 @@
       selectedTastes = (t.taste || []).slice();
       setSelectionsForSection('aromaCategories', selectedAromas);
       setSelectionsForSection('tasteCategories', selectedTastes);
+      renderSelectedDescriptors('aroma');
+      renderSelectedDescriptors('taste');
       // Show form
       newTastingSection.style.display = 'block';
       window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
@@ -1742,7 +2014,9 @@
       // Compute counts by grape
       const counts = {};
       tastings.forEach(t => {
-        counts[t.grape] = (counts[t.grape] || 0) + 1;
+        new Set(getGrapeComponents(t).map(g => g.name)).forEach(name => {
+          counts[name] = (counts[name] || 0) + 1;
+        });
       });
       const countList = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0]));
       // Compute weighted averages
@@ -1768,11 +2042,35 @@
       }
       const topWines = topWeighted('wineName', 'wineRating');
       const topWineries = topWeighted('vineyard', 'wineryRating');
-      const topGrapes = topWeighted('grape', 'grapeRating');
+      function topWeightedGrapes() {
+        const agg = {};
+        tastings.forEach(t => {
+          const parts = getGrapeComponents(t);
+          parts.forEach(g => {
+            const share = grapeShare(t, g.name);
+            const purchaseWeight = t.timesBought || 1;
+            const rating = parts.length === 1
+              ? parseFloat(t.grapeRating || t.wineRating || 0)
+              : parseFloat(t.wineRating || 0);
+            const weight = share * purchaseWeight;
+            if (!agg[g.name]) agg[g.name] = { sum: 0, weight: 0, wines: 0 };
+            agg[g.name].sum += rating * weight;
+            agg[g.name].weight += weight;
+            agg[g.name].wines += 1;
+          });
+        });
+        return Object.entries(agg).map(([name, v]) => ({
+          name,
+          avg: v.weight ? v.sum / v.weight : 0,
+          weight: v.wines,
+          score: (v.weight ? v.sum / v.weight : 0) * (1 + Math.min(v.wines, 10) * 0.05)
+        })).sort((a,b) => b.score - a.score).slice(0,5);
+      }
+      const topGrapes = topWeightedGrapes();
       // Build HTML for stats with card-based layout
       let html = `<div class="panel-header"><div class="panel-title">Detailed Stats</div><div class="panel-close" id="statsClose">✕</div></div>`;
       // Counts by grape card
-      html += `<div class="stats-category-card"><div class="stats-card-title">Counts by Grape</div>${countList.map(([g,c]) => `<div class="stat-row"><span class="stat-name">${g}</span><span class="stat-value">${c}</span></div>`).join('')}</div>`;
+      html += `<div class="stats-category-card"><div class="stats-card-title">Wines Featuring Each Grape</div>${countList.map(([g,c]) => `<div class="stat-row"><span class="stat-name">${g}</span><span class="stat-value">${c}</span></div>`).join('')}</div>`;
       // Top rated wines
       html += `<div class="stats-category-card"><div class="stats-card-title">Top Rated Wines</div>${topWines.map(item => `<div class="stat-row"><span class="stat-name">${item.name}</span><span class="stat-value">${item.avg.toFixed(1)} (${item.weight})</span></div>`).join('')}</div>`;
       // Top rated wineries
@@ -1806,8 +2104,9 @@
       tastings = getTastings();
       const grapeCounts = {};
       tastings.forEach(t => {
-        if (!grapeCounts[t.grape]) grapeCounts[t.grape] = 0;
-        grapeCounts[t.grape]++;
+        new Set(getGrapeComponents(t).map(g => g.name)).forEach(name => {
+          grapeCounts[name] = (grapeCounts[name] || 0) + 1;
+        });
       });
       const grapesList = Object.keys(grapeCounts).sort();
       let listHtml = '';
@@ -1850,7 +2149,7 @@
     // Show detailed palate map for a specific grape
     function showInsightDetail(grape) {
       // Filter tastings by grape
-      const tasts = getTastings().filter(t => t.grape === grape);
+      const tasts = getTastings().filter(t => tastingHasGrape(t, grape));
       if (tasts.length === 0) {
         showOverlay(`<div class="panel-header"><div class="panel-title">Insights</div><div class="panel-close" id="insightDetailClose">✕</div></div><p class="empty">No data for ${grape}.</p>`);
         document.getElementById('insightDetailClose').addEventListener('click', showInsightsList);
@@ -1862,7 +2161,7 @@
         tasts.forEach(t => {
           (t[list] || []).forEach(item => {
             const key = item.trim().toLowerCase();
-            freq[key] = (freq[key] || 0) + 1 * (t.timesBought || 1);
+            freq[key] = (freq[key] || 0) + (t.timesBought || 1) * grapeShare(t, grape);
           });
         });
         const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]);
@@ -1873,7 +2172,7 @@
         const counts = {};
         tasts.forEach(t => {
           const val = t[field] || '';
-          const weight = t.timesBought || 1;
+          const weight = (t.timesBought || 1) * grapeShare(t, grape);
           if (val) counts[val] = (counts[val] || 0) + weight;
         });
         const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
