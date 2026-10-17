@@ -1168,7 +1168,11 @@
       'Blueberry',
       'Oregano',
       'Allspice',
-      'Five Spice'
+      'Five Spice',
+      'Red Fruit',
+      'Dark Fruit',
+      'Red Jammy',
+      'Dark Jammy'
     ];
     const tasteOptions = [...smellOptions];
 
@@ -1192,11 +1196,11 @@
     const categories = [
       {
         name: 'Red Fruits',
-        items: ['Cranberry','Raspberry','Red Cherry','Strawberry','Red Plum']
+        items: ['Red Fruit','Red Jammy','Cranberry','Raspberry','Red Cherry','Strawberry','Red Plum']
       },
       {
         name: 'Dark Fruits',
-        items: ['Blackcurrant','Black Plum','Blackberry','Black Cherry','Fig','Blueberry']
+        items: ['Dark Fruit','Dark Jammy','Blackcurrant','Black Plum','Blackberry','Black Cherry','Fig','Blueberry']
       },
       {
         name: 'Citrus Fruits',
@@ -1274,6 +1278,13 @@
 
     function renderBlendRows() {
       const rows = document.getElementById('blendRows');
+
+      // A single-varietal wine is always 100%. As soon as it becomes a blend,
+      // require the user to enter the actual percentages for every component.
+      if (selectedGrapes.length === 1) {
+        selectedGrapes[0].percentage = 100;
+      }
+
       rows.innerHTML = '';
       selectedGrapes.forEach((g, index) => {
         const row = document.createElement('div');
@@ -1282,6 +1293,7 @@
         row.querySelector('.blend-name').textContent = g.name;
         const pctInput = row.querySelector('input');
         pctInput.value = g.percentage == null ? '' : g.percentage;
+        pctInput.disabled = selectedGrapes.length === 1;
         pctInput.addEventListener('input', () => {
           const raw = pctInput.value;
           g.percentage = raw === '' ? null : Math.max(0, Math.min(100, Number(raw)));
@@ -1307,19 +1319,20 @@
       const total = entered.reduce((sum, g) => sum + Number(g.percentage || 0), 0);
       summary.classList.remove('warning');
       if (!selectedGrapes.length) {
-        totalEl.textContent = 'Percentages optional';
-        statusEl.textContent = 'Add one or more grapes';
-      } else if (!entered.length) {
-        totalEl.textContent = 'Percentages optional';
-        statusEl.textContent = selectedGrapes.length === 1 ? 'Single varietal' : selectedGrapes.length + '-grape blend';
+        totalEl.textContent = 'Add a grape';
+        statusEl.textContent = '';
+      } else if (selectedGrapes.length === 1) {
+        totalEl.textContent = '100%';
+        statusEl.textContent = 'Single varietal';
       } else {
         totalEl.textContent = total + '% entered';
         const complete = entered.length === selectedGrapes.length;
-        if (total > 100 || (complete && selectedGrapes.length > 1 && total !== 100)) {
+        if (!complete) {
           summary.classList.add('warning');
-          statusEl.textContent = total > 100 ? 'Total cannot exceed 100%' : 'Complete blend should total 100%';
-        } else if (!complete) {
-          statusEl.textContent = 'Partial percentages are OK';
+          statusEl.textContent = 'Enter % for every grape';
+        } else if (total !== 100) {
+          summary.classList.add('warning');
+          statusEl.textContent = 'Blend must total 100%';
         } else {
           statusEl.textContent = 'Blend totals 100%';
         }
@@ -1327,10 +1340,11 @@
     }
 
     function blendPercentagesValid() {
+      if (selectedGrapes.length <= 1) return selectedGrapes.length === 1;
       const entered = selectedGrapes.filter(g => Number.isFinite(g.percentage));
+      if (entered.length !== selectedGrapes.length) return false;
       const total = entered.reduce((sum, g) => sum + Number(g.percentage || 0), 0);
-      if (total > 100) return false;
-      return !(selectedGrapes.length > 1 && entered.length === selectedGrapes.length && total !== 100);
+      return total === 100;
     }
 
     function setupGrapeSearch() {
@@ -1349,6 +1363,9 @@
           item.className = 'picker-result';
           item.textContent = name;
           item.addEventListener('click', () => {
+            if (selectedGrapes.length === 1 && selectedGrapes[0].percentage === 100) {
+              selectedGrapes[0].percentage = null;
+            }
             selectedGrapes.push({ name, percentage: null });
             input.value = '';
             closeResults();
@@ -1658,7 +1675,7 @@
       }
       if (!blendPercentagesValid()) {
         const toast = document.getElementById('toast');
-        toast.textContent = 'Check blend percentages before saving.';
+        toast.textContent = 'Enter a percentage for every grape and make the blend total 100%.';
         toast.style.opacity = 1;
         setTimeout(() => toast.style.opacity = 0, 2400);
         return;
