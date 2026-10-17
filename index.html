@@ -982,8 +982,10 @@
       document.getElementById('colourIntensity').value = p.intensity || '';
       document.getElementById('notes').value = p.notes || '';
       // Set selected aromas and taste from paused draft
-      selectedAromas = (p.smell || []).slice();
-      selectedTastes = (p.taste || []).slice();
+      selectedAromas.splice(0, selectedAromas.length, ...(p.smell || []));
+      selectedTastes.splice(0, selectedTastes.length, ...(p.taste || []));
+      resetDescriptorSearch('aroma');
+      resetDescriptorSearch('taste');
       setSelectionsForSection('aromaCategories', selectedAromas);
       setSelectionsForSection('tasteCategories', selectedTastes);
       renderSelectedDescriptors('aroma');
@@ -1444,6 +1446,21 @@
       });
     }
 
+    function resetDescriptorSearch(kind) {
+      const input = document.getElementById(kind === 'aroma' ? 'aromaSearch' : 'tasteSearch');
+      const container = document.getElementById(kind === 'aroma' ? 'aromaCategories' : 'tasteCategories');
+      if (input) input.value = '';
+      if (!container) return;
+      container.querySelectorAll('.category').forEach(category => {
+        category.style.display = '';
+        const header = category.querySelector('.category-header');
+        const items = category.querySelector('.category-items');
+        if (header) header.classList.remove('open');
+        if (items) items.classList.remove('open');
+        category.querySelectorAll('.chip').forEach(chip => chip.classList.remove('hidden-chip'));
+      });
+    }
+
     function setupDescriptorSearch(kind) {
       const input = document.getElementById(kind === 'aroma' ? 'aromaSearch' : 'tasteSearch');
       const container = document.getElementById(kind === 'aroma' ? 'aromaCategories' : 'tasteCategories');
@@ -1572,6 +1589,8 @@
     const newTastingSection = document.getElementById('newTastingSection');
     const cancelBtn = document.getElementById('cancelBtn');
     newTastingBtn.addEventListener('click', () => {
+      resetDescriptorSearch('aroma');
+      resetDescriptorSearch('taste');
       newTastingSection.style.display = 'block';
       window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
     });
@@ -1594,12 +1613,12 @@
       document.getElementById('colourIntensity').selectedIndex = 0;
       document.getElementById('notes').value = '';
       // Reset selections for aromas and taste
-      selectedAromas = [];
-      selectedTastes = [];
+      selectedAromas.splice(0, selectedAromas.length);
+      selectedTastes.splice(0, selectedTastes.length);
+      resetDescriptorSearch('aroma');
+      resetDescriptorSearch('taste');
       renderSelectedDescriptors('aroma');
       renderSelectedDescriptors('taste');
-      document.getElementById('aromaSearch').value = '';
-      document.getElementById('tasteSearch').value = '';
       // Remove selected class from all chips
       document.querySelectorAll('.category-items .chip.selected').forEach(chip => chip.classList.remove('selected'));
       // Collapse any open category lists
@@ -1985,8 +2004,10 @@
       document.getElementById('colourIntensity').value = t.intensity || '';
       document.getElementById('notes').value = t.notes || '';
       // Set selections for aromas and taste
-      selectedAromas = (t.smell || []).slice();
-      selectedTastes = (t.taste || []).slice();
+      selectedAromas.splice(0, selectedAromas.length, ...(t.smell || []));
+      selectedTastes.splice(0, selectedTastes.length, ...(t.taste || []));
+      resetDescriptorSearch('aroma');
+      resetDescriptorSearch('taste');
       setSelectionsForSection('aromaCategories', selectedAromas);
       setSelectionsForSection('tasteCategories', selectedTastes);
       renderSelectedDescriptors('aroma');
