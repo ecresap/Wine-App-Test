@@ -663,6 +663,19 @@
       margin-right: 0.4rem;
       white-space: nowrap;
     }
+    .region-manager-row {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 0.55rem;
+      align-items: center;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .region-manager-meta {
+      font-size: 0.72rem;
+      color: var(--wine-200);
+      margin-top: 0.15rem;
+    }
   </style>
 </head>
 <body>
@@ -803,11 +816,18 @@
           </div>
           <div class="field">
             <label for="country">Country</label>
-            <input type="text" id="country" placeholder="e.g., France" />
+            <div class="picker-wrap">
+              <input type="text" id="country" placeholder="Search or enter country..." autocomplete="off" />
+              <div id="countrySearchResults" class="picker-results"></div>
+            </div>
           </div>
           <div class="field">
             <label for="region">Wine Region</label>
-            <input type="text" id="region" placeholder="e.g., Bordeaux, Napa Valley, Rioja" />
+            <div class="picker-wrap">
+              <input type="text" id="region" placeholder="Search previous regions or enter a new one..." autocomplete="off" />
+              <div id="regionSearchResults" class="picker-results"></div>
+            </div>
+            <button type="button" class="small-btn" id="manageRegionsBtn" style="margin-top:0.5rem;">Manage Regions</button>
           </div>
           <div class="field">
             <label for="grapeSearch">Grapes / Blend</label>
@@ -1007,6 +1027,14 @@
       newTastingSection.style.display = 'block';
       window.scrollTo({ top: newTastingSection.offsetTop - 80, behavior: 'smooth' });
     }
+    const countries = [
+      'Argentina','Australia','Austria','Brazil','Bulgaria','Canada','Chile','China','Croatia',
+      'Cyprus','Czech Republic','France','Georgia','Germany','Greece','Hungary','Israel','Italy',
+      'Japan','Lebanon','Mexico','Moldova','Morocco','New Zealand','North Macedonia','Portugal',
+      'Romania','Serbia','Slovakia','Slovenia','South Africa','Spain','Switzerland','Turkey',
+      'United Kingdom','United States','Uruguay'
+    ];
+
     // Data arrays for grapes, smell, and taste notes (alphabetical)
     const grapes = [
       'Cabernet Sauvignon',
@@ -1357,6 +1385,85 @@
       return total === 100;
     }
 
+    function uniqueSorted(values) {
+      return [...new Set(values.filter(Boolean).map(v => String(v).trim()).filter(Boolean))]
+        .sort((a,b) => a.localeCompare(b));
+    }
+
+    function savedCountries() {
+      return uniqueSorted(getTastings().map(t => t.country));
+    }
+
+    function savedRegions(countryValue = '') {
+      const targetCountry = countryValue.trim().toLowerCase();
+      const all = getTastings().filter(t => t.region);
+      const preferred = [];
+      const other = [];
+      all.forEach(t => {
+        const name = String(t.region || '').trim();
+        if (!name) return;
+        if (targetCountry && String(t.country || '').trim().toLowerCase() === targetCountry) preferred.push(name);
+        else other.push(name);
+      });
+      return [...uniqueSorted(preferred), ...uniqueSorted(other).filter(r => !preferred.includes(r))];
+    }
+
+    function setupTextSuggestionPicker(inputId, resultsId, getOptions, onPick) {
+      const input = document.getElementById(inputId);
+      const results = document.getElementById(resultsId);
+      function close() { results.style.display = 'none'; }
+      function render() {
+        const q = input.value.trim().toLowerCase();
+        const matches = getOptions()
+          .filter(v => !q || v.toLowerCase().includes(q))
+          .sort((a,b) => {
+            const al = a.toLowerCase(), bl = b.toLowerCase();
+            const aStarts = q && al.startsWith(q) ? 0 : 1;
+            const bStarts = q && bl.startsWith(q) ? 0 : 1;
+            return aStarts - bStarts || a.localeCompare(b);
+          })
+          .slice(0, 12);
+        results.innerHTML = '';
+        matches.forEach(value => {
+          const item = document.createElement('div');
+          item.className = 'picker-result';
+          item.textContent = value;
+          item.addEventListener('click', () => {
+            input.value = value;
+            close();
+            if (onPick) onPick(value);
+          });
+          results.appendChild(item);
+        });
+        results.style.display = matches.length ? 'block' : 'none';
+      }
+      input.addEventListener('focus', render);
+      input.addEventListener('input', render);
+      document.addEventListener('click', e => {
+        if (!input.closest('.picker-wrap').contains(e.target)) close();
+      });
+      return { render, close };
+    }
+
+    let countryPicker;
+    let regionPicker;
+    function setupLocationPickers() {
+      countryPicker = setupTextSuggestionPicker(
+        'country',
+        'countrySearchResults',
+        () => uniqueSorted([...countries, ...savedCountries()]),
+        () => { if (regionPicker) regionPicker.render(); }
+      );
+      regionPicker = setupTextSuggestionPicker(
+        'region',
+        'regionSearchResults',
+        () => savedRegions(document.getElementById('country').value)
+      );
+      document.getElementById('country').addEventListener('input', () => {
+        if (regionPicker) regionPicker.close();
+      });
+    }
+
     function setupGrapeSearch() {
       const input = document.getElementById('grapeSearch');
       const results = document.getElementById('grapeSearchResults');
@@ -1524,6 +1631,7 @@
     renderSelectedDescriptors('taste');
     setupDescriptorSearch('aroma');
     setupDescriptorSearch('taste');
+    setupLocationPickers();
     setupGrapeSearch();
     renderBlendRows();
 
@@ -1791,6 +1899,9 @@
     document.getElementById('libraryBtn').addEventListener('click', () => {
       showLibrary();
     });
+    document.getElementById('manageRegionsBtn').addEventListener('click', () => {
+      showRegionManager();
+    });
     // Stats button
     document.getElementById('statsBtn').addEventListener('click', () => {
       showStats();
@@ -1800,6 +1911,90 @@
     document.getElementById('insightsBtn').addEventListener('click', () => {
       showInsights();
     });
+
+    function showRegionManager() {
+      tastings = getTastings();
+      const regionMap = {};
+      tastings.forEach(t => {
+        const region = String(t.region || '').trim();
+        if (!region) return;
+        if (!regionMap[region]) regionMap[region] = { count: 0, countries: new Set() };
+        regionMap[region].count++;
+        if (t.country) regionMap[region].countries.add(t.country);
+      });
+
+      const regions = Object.keys(regionMap).sort((a,b) => a.localeCompare(b));
+      const html = `
+        <div class="panel-header">
+          <div class="panel-title">Manage Regions</div>
+          <div class="panel-close" id="regionManagerClose">✕</div>
+        </div>
+        <p style="font-size:0.82rem;color:var(--wine-200);margin-top:0;">
+          Rename a region to correct spelling. Every saved tasting using that exact region will be updated.
+        </p>
+        <div id="regionManagerList"></div>
+      `;
+      showOverlay(html);
+      document.getElementById('regionManagerClose').addEventListener('click', closeOverlay);
+
+      const list = document.getElementById('regionManagerList');
+      if (!regions.length) {
+        list.innerHTML = '<p class="empty">No saved regions yet.</p>';
+        return;
+      }
+
+      regions.forEach(region => {
+        const info = regionMap[region];
+        const row = document.createElement('div');
+        row.className = 'region-manager-row';
+
+        const textWrap = document.createElement('div');
+        const name = document.createElement('div');
+        name.style.fontWeight = '600';
+        name.textContent = region;
+        const meta = document.createElement('div');
+        meta.className = 'region-manager-meta';
+        const countriesText = [...info.countries].sort().join(', ');
+        meta.textContent = info.count + ' tasting' + (info.count === 1 ? '' : 's') + (countriesText ? ' · ' + countriesText : '');
+        textWrap.appendChild(name);
+        textWrap.appendChild(meta);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'small-btn';
+        editBtn.textContent = 'Rename';
+        editBtn.addEventListener('click', () => {
+          const corrected = window.prompt('Correct region name:', region);
+          if (corrected === null) return;
+          const next = corrected.trim();
+          if (!next || next === region) return;
+
+          const listNow = getTastings();
+          let updated = 0;
+          listNow.forEach(t => {
+            if (String(t.region || '').trim() === region) {
+              t.region = next;
+              t.updatedAt = new Date().toISOString();
+              updated++;
+            }
+          });
+          saveTastings(listNow);
+
+          if (document.getElementById('region').value.trim() === region) {
+            document.getElementById('region').value = next;
+          }
+
+          const toast = document.getElementById('toast');
+          toast.textContent = 'Updated ' + updated + ' tasting' + (updated === 1 ? '' : 's') + '.';
+          toast.style.opacity = 1;
+          setTimeout(() => toast.style.opacity = 0, 2200);
+          showRegionManager();
+        });
+
+        row.appendChild(textWrap);
+        row.appendChild(editBtn);
+        list.appendChild(row);
+      });
+    }
 
     // Show the Tasting Library
     function showLibrary() {
