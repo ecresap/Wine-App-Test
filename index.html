@@ -802,6 +802,14 @@
             <input type="number" id="vintage" placeholder="e.g., 2021" />
           </div>
           <div class="field">
+            <label for="country">Country</label>
+            <input type="text" id="country" placeholder="e.g., France" />
+          </div>
+          <div class="field">
+            <label for="region">Wine Region</label>
+            <input type="text" id="region" placeholder="e.g., Bordeaux, Napa Valley, Rioja" />
+          </div>
+          <div class="field">
             <label for="grapeSearch">Grapes / Blend</label>
             <div class="picker-wrap">
               <input type="text" id="grapeSearch" placeholder="Search and add a grape..." autocomplete="off" />
@@ -969,6 +977,8 @@
       document.getElementById('vineyard').value = p.vineyard || '';
       document.getElementById('wineName').value = p.wineName || '';
       document.getElementById('vintage').value = p.vintage || '';
+      document.getElementById('country').value = p.country || '';
+      document.getElementById('region').value = p.region || '';
       selectedGrapes = getGrapeComponents(p).map(g => ({ name: g.name, percentage: g.percentage }));
       document.getElementById('grapeSearch').value = '';
       renderBlendRows();
@@ -1616,6 +1626,8 @@
       document.getElementById('vineyard').value = '';
       document.getElementById('wineName').value = '';
       document.getElementById('vintage').value = '';
+      document.getElementById('country').value = '';
+      document.getElementById('region').value = '';
       selectedGrapes = [];
       document.getElementById('grapeSearch').value = '';
       renderBlendRows();
@@ -1653,6 +1665,8 @@
         vineyard: document.getElementById('vineyard').value.trim(),
         wineName: document.getElementById('wineName').value.trim(),
         vintage: document.getElementById('vintage').value.trim(),
+        country: document.getElementById('country').value.trim(),
+        region: document.getElementById('region').value.trim(),
         grapes: selectedGrapes.map(g => ({ name: g.name, percentage: g.percentage == null ? null : Number(g.percentage) })),
         grape: legacyGrapeLabel(selectedGrapes),
         wineRating: document.getElementById('wineRating').value,
@@ -1720,6 +1734,8 @@
         vineyard: document.getElementById('vineyard').value.trim(),
         wineName: document.getElementById('wineName').value.trim(),
         vintage: document.getElementById('vintage').value.trim(),
+        country: document.getElementById('country').value.trim(),
+        region: document.getElementById('region').value.trim(),
         grapes: selectedGrapes.map(g => ({ name: g.name, percentage: g.percentage == null ? null : Number(g.percentage) })),
         grape: legacyGrapeLabel(selectedGrapes),
         wineRating: document.getElementById('wineRating').value,
@@ -1912,6 +1928,10 @@
               <div class="entry-value">${t.wineName || '—'}${t.vintage ? ' (' + t.vintage + ')' : ''}</div>
             </div>
             <div class="entry-row">
+              <div class="entry-label">Location:</div>
+              <div class="entry-value">${[t.region, t.country].filter(Boolean).join(', ') || '—'}</div>
+            </div>
+            <div class="entry-row">
               <div class="entry-label">Grapes:</div>
               <div class="entry-value">${blendDisplay(t)}</div>
             </div>
@@ -2008,6 +2028,8 @@
       document.getElementById('vineyard').value = t.vineyard || '';
       document.getElementById('wineName').value = t.wineName || '';
       document.getElementById('vintage').value = t.vintage || '';
+      document.getElementById('country').value = t.country || '';
+      document.getElementById('region').value = t.region || '';
       selectedGrapes = getGrapeComponents(t).map(g => ({ name: g.name, percentage: g.percentage }));
       document.getElementById('grapeSearch').value = '';
       renderBlendRows();
